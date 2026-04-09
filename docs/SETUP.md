@@ -42,7 +42,7 @@ Use a test recipient in `NOTIFY_TO` while verifying the workflow end-to-end, the
 
 ## 3. Seed existing reviews
 
-The **Bootstrap Seed Issues** workflow now runs automatically on pushes to `main` that add or change review items under `reviews/awaiting-review-2/` or `reviews/in-progress/`. It supports both review folders and standalone files placed directly in those stage directories. It creates tracking issues only for items that do not already have one, so it is idempotent and safe to re-run.
+The **Bootstrap Seed Issues** workflow now runs automatically on pushes to `main` that add or change review items under `reviews/awaiting-review-2/`. It supports both review folders and standalone files placed directly in that stage directory. It creates tracking issues only for items that do not already have one, so it is idempotent and safe to re-run.
 
 If needed, you can still run **Bootstrap Seed Issues** manually from the Actions tab to backfill or re-check the repository.
 

@@ -1,8 +1,8 @@
 name: Bootstrap Seed Issues
 
-# Repeatable workflow to create issues for review folders that don't yet have a
-# tracking issue. It can be run manually, and it also auto-runs when review
-# folders are added or changed on main.
+# Repeatable workflow to create issues for awaiting-review-2 items that don't
+# yet have a tracking issue. It can be run manually, and it also auto-runs when
+# awaiting-review-2 items are added or changed on main.
 
 on:
   workflow_dispatch:
@@ -10,7 +10,6 @@ on:
     branches:
       - main
     paths:
-      - 'reviews/in-progress/**'
       - 'reviews/awaiting-review-2/**'
 
 permissions:
@@ -32,7 +31,6 @@ jobs:
 
             const stages = [
               { dir: 'reviews/awaiting-review-2', label: 'awaiting-review-2' },
-              { dir: 'reviews/in-progress',      label: 'review-1-active' },
             ];
 
             // Pull all issues once so we can dedupe by path marker.
