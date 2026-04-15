@@ -129,13 +129,14 @@ Between `/checkout` and `/approve`, you can add as many comments on the issue as
 
 ### Adding a new manuscript to the queue
 
-If you need to add something new for review:
+Just drop the files into `reviews/awaiting-review-2/`, commit, and push. The system automatically creates a tracking issue for each new item.
 
-1. Go to the **Issues** tab on GitHub
-2. Click **New issue**
-3. Choose the **"Add manuscript to review queue"** template
-4. Fill in the short name and DOI/URL
-5. Submit it — it enters as `awaiting-review-2` automatically
+1. In VS Code, add your folder (or file) inside `reviews/awaiting-review-2/`
+2. Include a `metadata.yml` if it's a folder (see structure below)
+3. Commit and push
+4. A GitHub issue labeled `awaiting-review-2` is created automatically — no manual issue needed
+
+You can also create an issue by hand from the **Issues** tab → **New issue** → **"Add manuscript to review queue"** template, but it's not required.
 
 ### Review folder structure
 

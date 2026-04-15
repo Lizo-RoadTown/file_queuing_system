@@ -41,6 +41,10 @@ reviews/
 
 When you `/checkout` an item, the system moves its files from `awaiting-review-2/` into `in-progress/` for you. When you `/approve`, the system moves them to `completed/`.
 
+## Adding New Items
+
+Drop a notebook file or folder into `reviews/awaiting-review-2/`, commit, and push. The system automatically creates a tracking issue — no manual issue creation needed.
+
 ## Why GitHub?
 
 GitHub already handles everything this system needs — file storage, change tracking, user accounts, automation, and notifications. No database, no extra server, no new accounts to create.
