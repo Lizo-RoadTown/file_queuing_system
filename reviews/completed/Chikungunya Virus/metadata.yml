@@ -6,5 +6,6 @@ manuscript: Chikungunya Virus.pdf
 output_image: CHIKV OUTPUT.png
 reviewer_1: Lizo-RoadTown
 reviewer_1_completed: 2026-04-08
-reviewer_2: null
-state: awaiting-review-2
+reviewer_2: unknown
+state: complete
+reviewer_2_completed: 2026-04-15
