@@ -308,8 +308,6 @@ When you first open the repository, VS Code might show a popup suggesting extens
 
 ## Understanding the Repository
 
-## Understanding the Repository
-
 Now that you've set everything up, let's understand what's in this repository and how it's organized.
 
 ### What is a Repository?
@@ -428,107 +426,54 @@ Every time you sit down to work:
 
 ### Working on a Review
 
-This is covered in detail in [`CONTRIBUTING.md`](../CONTRIBUTING.md), but the general flow:
+This is covered in detail in [`CONTRIBUTING.md`](../CONTRIBUTING.md), but the quick version:
 
-1. **Find an issue** you want to work on (on GitHub)
-2. **Comment `/checkout`** to claim it
-3. **Create a folder** in `reviews/in-progress/` for your work
-4. **Do your review work** (create notebooks, add files, etc.)
+1. **Find an issue** labeled `awaiting-review-2` on GitHub
+2. **Comment `/checkout`** to claim it (the system moves the files for you)
+3. **Pull** the latest files so the moved files appear on your computer
+4. **Do your review work** (re-run notebooks, compare to the manuscript)
 5. **Save your changes to Git** (see below)
-6. **Open a Pull Request** on GitHub
+6. **Comment `/approve`** on the issue when you're done
 
 ### Saving Changes to Git
 
-Git tracks changes in three steps: **stage → commit → push**.
+#### Using VS Code (preferred)
 
-#### Check What Changed
+1. Click the **Source Control** icon in the left sidebar
+2. Review the changed files — make sure they look right
+3. Type a short message in the **Message** box, like:
+   - `Verified HBV notebook results`
+   - `Added review notes for Cholera manuscript`
+4. Click the **checkmark (✓)** to commit
+5. Click **Sync Changes**
 
-```powershell
-git status
-```
+That's it — your work is on GitHub.
 
-This shows which files you've changed (in red) and which are ready to save (in green).
+#### Using the terminal (backup)
 
-#### Stage Files (Mark Them for Saving)
-
-To stage all changed files:
 ```powershell
 git add .
-```
-
-Or to stage specific files:
-```powershell
-git add reviews/in-progress/MyReview/notebook.ipynb
-```
-
-#### Commit Changes (Save Locally)
-
-```powershell
-git commit -m "Describe what you did here"
-```
-
-Replace the text in quotes with a brief description, like:
-- `"Add initial review for XYZ manuscript"`
-- `"Fix typo in metadata file"`
-- `"Complete first review"`
-
-#### Push to GitHub (Upload)
-
-```powershell
+git commit -m "Verified HBV notebook results"
 git push
 ```
-
-This uploads your changes to GitHub so others can see them.
-
-**Full example:**
-```powershell
-git add .
-git commit -m "Complete first review for ABC manuscript"
-git push
-```
-
-### Opening a Pull Request
-
-A Pull Request (PR) is how you ask to add your changes to the main repository.
-
-1. **Push your changes** (see above)
-2. **Go to GitHub** in your web browser:
-   `https://github.com/Lizo-RoadTown/file_queuing_system`
-3. **You'll see a yellow banner** saying "YourBranch had recent pushes"
-4. **Click "Compare & pull request"**
-5. **Write a title** describing your changes
-6. **Click "Create pull request"**
-7. **Wait for approval** from a maintainer
 
 ### Syncing Changes from Others
 
 If someone else made changes:
 
-```powershell
-git pull
-```
+**VS Code:** Source Control panel → **"..."** → **Pull**
 
-This downloads their changes to your computer.
+**Terminal:** `git pull`
 
 **Do this:**
 - At the start of each work session
-- Before opening a Pull Request
-- Whenever GitHub tells you your branch is "behind"
+- Whenever VS Code shows a number on the sync arrows in the bottom status bar
 
 ### Ending Your Work Session
 
-1. **Make sure you've saved everything:**
-   ```powershell
-   git status
-   ```
-   If you see changed files, commit and push them (or decide to keep them for next time).
-
+1. **Check the Source Control panel** — if files appear there, commit and sync them
 2. **Close VS Code**
-
-3. **Deactivate the environment (optional):**
-   ```powershell
-   conda deactivate
-   ```
+3. **Deactivate the environment (optional):** `conda deactivate`
 
 Done! Your work is saved both locally and on GitHub.
 
@@ -703,17 +648,13 @@ code .
 ```
 
 ### Saving Changes
+
+**VS Code:** Type a message in Source Control → click **✓** → click **Sync Changes**
+
+**Terminal:**
 ```powershell
-# Check what changed
-git status
-
-# Stage all changes
 git add .
-
-# Commit with message
 git commit -m "Your message here"
-
-# Push to GitHub
 git push
 ```
 

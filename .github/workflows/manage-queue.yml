@@ -6,7 +6,7 @@ on:
 
 permissions:
   issues: write
-  contents: read
+  contents: write
 
 jobs:
   handle-command:
@@ -55,6 +55,7 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
+            const { execFileSync } = require('child_process');
             const commenter = process.env.COMMENTER;
             const body = context.payload.comment.body.trim();
             const cmd  = body.split(/\s+/)[0];
@@ -75,6 +76,47 @@ jobs:
                   ...context.repo, issue_number: issue.number, labels: toAdd,
                 });
               }
+            };
+
+            const updateIssuePathMarkers = async (oldPath, newPath) => {
+              let newBody = issue.body || '';
+              if ((issue.body || '').match(/<!--\s*folder:\s*(.+?)\s*-->/)) {
+                newBody = newBody.replace(/<!--\s*folder:\s*.+?\s*-->/, `<!-- folder: ${newPath} -->`);
+              }
+              if ((issue.body || '').match(/<!--\s*path:\s*(.+?)\s*-->/)) {
+                newBody = newBody.replace(/<!--\s*path:\s*.+?\s*-->/, `<!-- path: ${newPath} -->`);
+              }
+              if (newBody !== (issue.body || '')) {
+                await github.rest.issues.update({
+                  ...context.repo,
+                  issue_number: issue.number,
+                  body: newBody,
+                });
+              }
+            };
+
+            const moveTrackedItemToStage = async (sourcePath, stageDir) => {
+              const itemName = path.basename(sourcePath);
+              const destPath = `reviews/${stageDir}/${itemName}`;
+              if (sourcePath === destPath) return { moved: false, path: sourcePath };
+              if (!sourcePath.startsWith('reviews/')) {
+                throw new Error(`Tracked path is outside reviews/: ${sourcePath}`);
+              }
+              if (fs.existsSync(destPath)) {
+                throw new Error(`Destination already exists: ${destPath}`);
+              }
+              fs.mkdirSync(`reviews/${stageDir}`, { recursive: true });
+              execFileSync('git', ['config', 'user.name', 'github-actions[bot]']);
+              execFileSync('git', ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']);
+              execFileSync('git', ['mv', sourcePath, destPath]);
+              execFileSync('git', ['add', '-A']);
+              const pending = execFileSync('git', ['status', '--short']).toString().trim();
+              if (pending) {
+                execFileSync('git', ['commit', '-m', `Queue move: ${itemName} -> reviews/${stageDir} (refs #${issue.number})`]);
+                execFileSync('git', ['push']);
+              }
+              await updateIssuePathMarkers(sourcePath, destPath);
+              return { moved: true, path: destPath };
             };
 
             // Extract the tracked review item from issue body markers.
@@ -101,14 +143,6 @@ jobs:
 
             // ---------- /checkout ----------
             if (cmd === '/checkout') {
-              if (labels.includes('queued')) {
-                await github.rest.issues.addAssignees({
-                  ...context.repo, issue_number: issue.number, assignees: [commenter],
-                });
-                await setLabels(['review-1-active'], ['queued']);
-                await reply(`@${commenter} checked out for **first review**. Submit a PR adding your work under \`reviews/in-progress/<name>/\` (notebook + PDF + output image + \`metadata.yml\` with \`reviewer_1: ${commenter}\`). Run \`/release\` to give it back.`);
-                return;
-              }
               if (labels.includes('awaiting-review-2')) {
                 if (!trackedPath) {
                   await reply(`Could not determine which repository item this issue tracks (missing \`<!-- folder: ... -->\` or \`<!-- path: ... -->\` marker). Aborting checkout — contact the maintainer.`);
@@ -125,13 +159,21 @@ jobs:
                 await github.rest.issues.addAssignees({
                   ...context.repo, issue_number: issue.number, assignees: [commenter],
                 });
-                await setLabels(['review-2-active'], ['awaiting-review-2']);
+                let activePath = trackedPath;
+                try {
+                  const moved = await moveTrackedItemToStage(trackedPath, 'in-progress');
+                  activePath = moved.path;
+                } catch (err) {
+                  await reply(`Could not move the tracked item into \`reviews/in-progress/\`: ${err.message}`);
+                  return;
+                }
+                await setLabels(['review-2-active'], ['awaiting-review-2', 'complete']);
                 const itemSummary = isFolderItem
-                  ? `This issue is linked to the review folder \`${trackedPath}\`.`
+                  ? `This issue is linked to the review folder \`${activePath}\`.`
                   : isFileItem
-                    ? `This issue is linked to the standalone review file \`${trackedPath}\`.`
-                    : `This issue is linked to \`${trackedPath}\`.`;
-                await reply(`@${commenter} checked out for **second review**. ${itemSummary} ${reviewerLine} When done, comment \`/approve\` to continue finalization, or \`/release\` to give it back.`);
+                    ? `This issue is linked to the standalone review file \`${activePath}\`.`
+                    : `This issue is linked to \`${activePath}\`.`;
+                await reply(`@${commenter} checked out for **second review**. The tracked item was moved to \`reviews/in-progress/\` and the issue is now \`review-2-active\`. ${itemSummary} ${reviewerLine} When done, comment \`/approve\` to move it to completed, or \`/release\` to return it to \`awaiting-review-2\`.`);
                 return;
               }
               await reply(`This item is not currently checkable-out (state: \`${labels.join(', ')}\`).`);
@@ -140,6 +182,10 @@ jobs:
 
             // ---------- /release ----------
             if (cmd === '/release') {
+              if (!labels.includes('review-2-active')) {
+                await reply(`\`/release\` is only valid during an active review (current: \`${labels.join(', ')}\`).`);
+                return;
+              }
               const assignees = (issue.assignees || []).map(a => a.login);
               if (!assignees.includes(commenter)) {
                 await reply(`@${commenter} you're not the current reviewer on this item.`);
@@ -148,12 +194,16 @@ jobs:
               await github.rest.issues.removeAssignees({
                 ...context.repo, issue_number: issue.number, assignees: [commenter],
               });
-              if (labels.includes('review-1-active')) {
-                await setLabels(['queued'], ['review-1-active']);
-              } else if (labels.includes('review-2-active')) {
-                await setLabels(['awaiting-review-2'], ['review-2-active']);
+              if (trackedPath && hasTrackedPath) {
+                try {
+                  await moveTrackedItemToStage(trackedPath, 'awaiting-review-2');
+                } catch (err) {
+                  await reply(`Could not move the tracked item back to \`reviews/awaiting-review-2/\`: ${err.message}`);
+                  return;
+                }
               }
-              await reply(`Released by @${commenter}.`);
+              await setLabels(['awaiting-review-2'], ['review-2-active']);
+              await reply(`Released by @${commenter}. The item is back in \`awaiting-review-2\`.`);
               return;
             }
 

@@ -1,7 +1,7 @@
 name: Add manuscript to review queue
 description: Submit a new DOI or URL for SDE manuscript review
 title: "[QUEUE] "
-labels: ["queued"]
+labels: ["awaiting-review-2"]
 body:
   - type: input
     id: name
@@ -30,4 +30,4 @@ body:
     attributes:
       value: |
         ---
-        **Next steps:** Once submitted, this item enters the queue. A reviewer can claim it by commenting `/checkout` on this issue.
+        **Next steps:** Use this template for items that already completed first review and are ready for second review. A reviewer can claim it by commenting `/checkout` on this issue.
