@@ -1,0 +1,10 @@
+name: Chikungunya Virus
+doi: 10.1016/j.knosys.2025.114412
+url: https://doi.org/10.1016/j.knosys.2025.114412
+notebook: 10_1016j_knosys_2025_114412.ipynb
+manuscript: Chikungunya Virus.pdf
+output_image: CHIKV OUTPUT.png
+reviewer_1: Lizo-RoadTown
+reviewer_1_completed: 2026-04-08
+reviewer_2: null
+state: awaiting-review-2
