@@ -1,77 +1,112 @@
 # Maintainer Setup
 
-One-time configuration for the repo owner.
+This guide is for the person who owns or manages the repository. Reviewers don't need this — they should follow the [Local Setup Guide](LOCAL_SETUP_GUIDE.md) instead.
 
-## 1. Create labels
+Everything here only needs to be done **once** when you first set up the system.
 
-The workflows depend on these labels existing:
+---
 
-| Label | Color |
-|---|---|
-| `queued` | `#cccccc` |
-| `review-1-active` | `#fbca04` |
-| `awaiting-review-2` | `#0e8a16` |
-| `review-2-active` | `#fbca04` |
-| `complete` | `#5319e7` |
+## 1. Create the Required Labels
 
-With the GitHub CLI:
+The automation uses labels on issues to track progress. You need three:
+
+| Label | Color | Meaning |
+|---|---|---|
+| `awaiting-review-2` | green (`#0e8a16`) | Ready for a reviewer to claim |
+| `review-2-active` | yellow (`#fbca04`) | Someone is working on it |
+| `complete` | purple (`#5319e7`) | Review is finished |
+
+### Using the GitHub website (preferred)
+
+1. Go to your repository on GitHub
+2. Click **Issues** in the top menu
+3. Click **Labels** (on the right side)
+4. Click **New label**
+5. Type the label name, pick the color, and click **Create label**
+6. Repeat for all three labels
+
+### Using the terminal (backup)
+
+If you have the [GitHub CLI](https://cli.github.com/) installed:
 
 ```bash
-gh label create queued            --color cccccc
-gh label create review-1-active   --color fbca04
 gh label create awaiting-review-2 --color 0e8a16
 gh label create review-2-active   --color fbca04
 gh label create complete          --color 5319e7
 ```
 
-Or click through **Issues → Labels → New label** in the browser.
+---
 
-## 2. Configure secrets
+## 2. Set Up Email Notifications (Optional)
 
-In **Settings → Secrets and variables → Actions**, add:
+If you want the system to email people when a review is completed, you need to add some secrets. If you skip this, everything else still works — you just won't get emails.
 
-| Secret | Purpose |
+### Where to add secrets
+
+1. Go to your repository on GitHub
+2. Click **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret** for each one below
+
+### What to add
+
+| Secret name | What to put in it |
 |---|---|
-| `NOTIFY_TO` | Recipient address for completed review packages |
-| `SMTP_SERVER` | SMTP host |
-| `SMTP_PORT` | SMTP port |
-| `SMTP_USER` | Sender address used to authenticate |
-| `SMTP_PASS` | Sender password or app-specific token |
+| `NOTIFY_TO` | The email address that should receive completed review packages |
+| `SMTP_SERVER` | Your email provider's SMTP server (e.g., `smtp.gmail.com`) |
+| `SMTP_PORT` | The SMTP port (usually `587`) |
+| `SMTP_USER` | The "from" email address |
+| `SMTP_PASS` | The password or app-specific password for that email |
 
-Use a test recipient in `NOTIFY_TO` while verifying the workflow end-to-end, then update the secret to the production recipient.
+> **Tip:** Start with a test email address in `NOTIFY_TO`. Once you've confirmed it works, change it to the real recipient.
 
-Current behavior: the reviewer automation supports tracked review folders and standalone files. For folder-based items with `metadata.yml`, it also enforces that the second reviewer cannot be the same as the recorded first reviewer.
+---
 
-## 3. Seed existing reviews
+## 3. Seed Existing Reviews
 
-The **Bootstrap Seed Issues** workflow now runs automatically on pushes to `main` that add or change review items under `reviews/awaiting-review-2/`. It supports both review folders and standalone files placed directly in that stage directory. It creates tracking issues only for items that do not already have one, so it is idempotent and safe to re-run.
+If you already have notebooks in `reviews/awaiting-review-2/`, the system can automatically create tracking issues for them.
 
-If needed, you can still run **Bootstrap Seed Issues** manually from the Actions tab to backfill or re-check the repository.
+The **Bootstrap Seed Issues** workflow runs automatically when you push new items to that folder. It's safe to run multiple times — it won't create duplicate issues.
 
-## 4. Test end-to-end
+You can also trigger it manually:
 
-1. Pick one of the seeded `awaiting-review-2` issues.
-2. From a second account (different from the recorded `reviewer_1`), comment `/checkout`.
-3. Comment `/approve`.
-4. Verify the tracked folder or file moves into `reviews/completed/`, the issue closes, and the test recipient receives the zipped package.
+1. Go to **Actions** in your repository
+2. Find **Bootstrap Seed Issues** in the left sidebar
+3. Click **Run workflow**
 
-If anything fails, check the workflow logs in the Actions tab.
+---
 
-## Authorization model
+## 4. Test Everything
 
-- **Currently:** any repo collaborator can run slash commands.
-- **After org transfer:** any member of the designated GitHub team can run slash commands.
+Walk through the full cycle once to make sure it works:
 
-To add or remove reviewers, change collaborator/team membership — no code changes required.
+1. Pick one of the `awaiting-review-2` issues
+2. Comment `/checkout` — the files should move to `reviews/in-progress/` and the label should change to `review-2-active`
+3. Comment `/approve` — the files should move to `reviews/completed/`, the issue should close, and you should get an email (if configured)
 
-## Transferring ownership
+If something doesn't work, check the **Actions** tab for error logs.
 
-1. **Settings → General → Danger Zone → Transfer ownership.** Type the destination org. Everything moves: code, issues, labels, PRs, secrets, Actions history.
-2. **Switch from collaborator-check to team-check.** In `.github/workflows/manage-queue.yml`, find the line marked `// TODO: switch to team check after transfer to org.` and replace the `checkCollaborator` block with the `teams.getMembershipForUserInOrg` block shown directly above it. Set the team slug.
-3. **Update the `NOTIFY_TO` secret** to the production recipient.
-4. **Update `.github/ISSUE_TEMPLATE/config.yml`** so the contributor-guide link points at the new org URL.
+---
 
-## Design notes
+## Who Can Run Commands
 
-- **No servers, no database.** GitHub provides storage, auth, audit log, notifications, and compute (Actions).
-- **All state lives in two places** — the issue (current stage) and `metadata.yml` (reviewer identities). Easy to read, easy to repair by hand.
+Right now, any repository collaborator can use the slash commands (`/checkout`, `/approve`, `/release`).
+
+To add or remove reviewers, just add or remove them as collaborators on the repository — no code changes needed.
+
+---
+
+## Transferring to an Organization
+
+If you move this repository to a GitHub organization later:
+
+1. **Settings → General → Danger Zone → Transfer ownership** — type the destination org
+2. In `.github/workflows/manage-queue.yml`, switch from the collaborator check to the team check (there's a comment in the code marking where)
+3. Update the `NOTIFY_TO` secret to the production email
+4. Update `.github/ISSUE_TEMPLATE/config.yml` with the new org URL
+
+---
+
+## How It Works (Design Notes)
+
+- **No servers or databases.** Everything runs on GitHub: storage, authentication, and automation (via GitHub Actions).
+- **State lives in two places:** the issue labels (current stage) and `metadata.yml` files (reviewer identities). Both are easy to read and fix by hand if needed.

@@ -1,43 +1,50 @@
 # SDE Review Queue
 
-This repository is a lightweight review-tracking system for manuscripts, notebooks, and reproducibility checks.
+A simple system for coordinating second reviews of research manuscripts and Jupyter notebooks. Built on GitHub — no extra software needed.
 
-It was designed for academic teams that need a simple way to coordinate first-pass and second-pass review work without adding a separate database or web application. Undergraduates and graduate reviewers use GitHub issues to claim work, record progress, and hand submissions from one review stage to the next.
+## How It Works
 
-## What the system does
+Each manuscript that needs a second review is tracked as a **GitHub issue**. Reviewers claim issues, do their review, and mark them done — all through comments on the issue.
 
-- Tracks each submission as a GitHub issue
-- Records review packages in the repository so work is visible and auditable
-- Enforces a two-stage review flow with different reviewers at each stage
-- Automates queue state changes and, when maintainer email settings are configured, final packaging and notification for tracked review folders and standalone review files
-
-The review lifecycle is:
-
-```text
-queued -> review-1-active -> awaiting-review-2 -> review-2-active -> complete
+```
+awaiting-review-2  →  review-2-active  →  complete
+       │                     │                 │
+  Needs a reviewer     Someone's on it    All done
 ```
 
-## How teams use it
+**That's the whole process.** Three stages, two commands.
 
-In practice, reviewers pick up work from the issue queue, complete or verify the associated notebook and manuscript materials, and move the package forward. The repository acts as the shared record of who reviewed what, when it was reviewed, and whether it is ready for the next stage.
+## The Two Commands You Need
 
-This keeps the process quick to explain:
+| Command | What it does |
+|---|---|
+| `/checkout` | Claim a review — moves the files to `in-progress` and assigns you |
+| `/approve` | Finish a review — marks it complete and triggers delivery |
 
-- New work enters the queue as an issue
-- A first reviewer claims it and prepares the review package
-- A second reviewer independently checks a tracked review folder or standalone review file
-- Approval ends the reviewer workflow; repository automation may then finalize delivery if the maintainer setup is in place
+There's also `/release` if you need to give something back to the queue.
 
-## Documentation
+## Quick Start
 
-- Reviewer workflow: [docs/USAGE.md](docs/USAGE.md)
-- Reviewer step-by-step guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Maintainer setup: [docs/SETUP.md](docs/SETUP.md)
+1. **New here?** Start with the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md) to get your computer ready
+2. **Ready to review?** Follow the [Reviewer Guide](CONTRIBUTING.md) for step-by-step instructions
+3. **Need the big picture?** See [How Reviewers Use This System](docs/USAGE.md)
+4. **Maintainer?** See [Setup](docs/SETUP.md) for one-time configuration
 
-## Suggested Repository Description
+## Where Files Live
 
-Transparent, version-controlled system for coordinating two-stage reproducibility review of research manuscripts and computational materials.
+```
+reviews/
+├── awaiting-review-2/   ← Items waiting for a second reviewer
+├── in-progress/         ← Items someone is actively reviewing
+└── completed/           ← Finished reviews
+```
 
-## Why this approach
+When you `/checkout` an item, the system moves its files from `awaiting-review-2/` into `in-progress/` for you. When you `/approve`, the system moves them to `completed/`.
 
-The system stays intentionally simple. GitHub provides authentication, history, storage, automation, and issue tracking, so the queue can remain transparent and easy to maintain while still supporting a formal review process.
+## Adding New Items
+
+Drop a notebook file or folder into `reviews/awaiting-review-2/`, commit, and push. The system automatically creates a tracking issue — no manual issue creation needed.
+
+## Why GitHub?
+
+GitHub already handles everything this system needs — file storage, change tracking, user accounts, automation, and notifications. No database, no extra server, no new accounts to create.
