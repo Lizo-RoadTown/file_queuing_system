@@ -146,33 +146,33 @@ jobs:
               const notesPath = path.join(folderPath, 'notes', 'review_notes.md');
               const notesTemplate = `# Review Notes
 
-- Reviewer: ${reviewer}
-- Checkout Time: ${checkoutTimestamp}
-- Paper Folder: ${paperFolder}
-- Issue: #${issueNumber}
+              - Reviewer: ${reviewer}
+              - Checkout Time: ${checkoutTimestamp}
+              - Paper Folder: ${paperFolder}
+              - Issue: #${issueNumber}
 
-## Summary
+              ## Summary
 
-## Required Changes
+              ## Required Changes
 
-## Comments
+              ## Comments
 
-## Decision
-- [ ] Approved
-- [ ] Needs Changes
-`;
+              ## Decision
+              - [ ] Approved
+              - [ ] Needs Changes
+              `;
               fs.writeFileSync(notesPath, notesTemplate);
 
               const metadataPath = path.join(folderPath, 'review_metadata.yml');
               const metadata = `paper_id: "${paperFolder}"
-status: "in-progress"
-reviewer: "${reviewer}"
-checkout_timestamp: "${checkoutTimestamp}"
-original_notebook: "${notebookName}"
-review_copy_notebook: "${notebookBase}_rvd.ipynb"
-approval_timestamp: null
-approved_by: null
-`;
+              status: "in-progress"
+              reviewer: "${reviewer}"
+              checkout_timestamp: "${checkoutTimestamp}"
+              original_notebook: "${notebookName}"
+              review_copy_notebook: "${notebookBase}_rvd.ipynb"
+              approval_timestamp: null
+              approved_by: null
+            `;
               fs.writeFileSync(metadataPath, metadata);
             };
 
