@@ -212,13 +212,10 @@ jobs:
                 const sectionIndex = notesContent.indexOf(section);
                 if (sectionIndex === -1) return false;
                 const afterSection = notesContent.slice(sectionIndex + section.length);
-                const nextSectionIndex = sectionNames
-                  .map(name => afterSection.indexOf(name))
-                  .filter(idx => idx >= 0)
-                  .sort((a, b) => a - b)[0];
-                const sectionText = nextSectionIndex === undefined
+                const nextHeadingIndex = afterSection.indexOf('##');
+                const sectionText = nextHeadingIndex === -1
                   ? afterSection
-                  : afterSection.slice(0, nextSectionIndex);
+                  : afterSection.slice(0, nextHeadingIndex);
                 return sectionText.trim().length > 0;
               });
               if (!hasMeaningfulNotes) {
@@ -229,7 +226,7 @@ jobs:
             const updateReviewMetadata = (metadataPath, updates) => {
               let content = fs.readFileSync(metadataPath, 'utf8');
               for (const [key, value] of Object.entries(updates)) {
-                const regex = new RegExp(`^${key}:.*$`, 'm');
+                const regex = new RegExp(`^\\s*${key}:.*$`, 'm');
                 const newLine = `${key}: ${value === null ? 'null' : `"${value}"`}`;
                 if (content.match(regex)) {
                   content = content.replace(regex, newLine);
