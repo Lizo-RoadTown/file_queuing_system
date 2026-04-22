@@ -4,7 +4,7 @@
 **Reviewer:** @lmmaganto  
 **DOI:** https://doi.org/10.26782/jmcms.2024.04.00006  
 **Figure:** 1  
-**Generated:** 2026-04-21 23:48 UTC  
+**Generated:** 2026-04-22 04:58 UTC  
 
 ---
 
@@ -193,18 +193,18 @@ def diffusion_term(t, y, p):
 
 **Changes (3):**
 
-1. `]` — think it is only x, x = number of people infected
-2. `#where did we get this` — get rid of d=0.0
-3. `final_time = 1200.0` — changing the time from 1.0 to 1200 per the graph
+1. `]` - think it is only x, x = number of people infected
+2. `#where did we get this` - get rid of d=0.0
+3. `final_time = 1200.0` - changing the time from 1.0 to 1200 per the graph
 
 ---
 
 ## Curator notification
 
-@Jamaal Porchia — your submission has been second reviewed by @lmmaganto.
+@Jamaal Porchia - your submission has been second reviewed by @lmmaganto.
 
 3 change(s) were made across 1 cell(s):
 
-- `]` — think it is only x, x = number of people infected
-- `#where did we get this` — get rid of d=0.0
-- `final_time = 1200.0` — changing the time from 1.0 to 1200 per the graph
+- `]` - think it is only x, x = number of people infected
+- `#where did we get this` - get rid of d=0.0
+- `final_time = 1200.0` - changing the time from 1.0 to 1200 per the graph

@@ -3,6 +3,8 @@ import json
 import re
 from pathlib import Path
 from datetime import datetime
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 
 def parse_notebook(path):
@@ -215,7 +217,7 @@ def generate_report(folder_path):
             for i, change in enumerate(d['changes'], 1):
                 line_text = f'`{change["line"]}`' if change['line'] else 'see code above'
                 reason_text = change['reason'] if change['reason'] else 'no reason provided'
-                lines.append(f'{i}. {line_text} — {reason_text}')
+                lines.append(f'{i}. {line_text} - {reason_text}')
             lines.append('')
         else:
             lines.append('**Reason:** not provided')
@@ -227,7 +229,7 @@ def generate_report(folder_path):
         f'',
         f'## Curator notification',
         f'',
-        f'@{curator} — your submission has been second reviewed by @{reviewer}.',
+        f'@{curator} - your submission has been second reviewed by @{reviewer}.',
         f'',
     ]
     if total_changes == 0:
@@ -239,7 +241,7 @@ def generate_report(folder_path):
             for change in d['changes']:
                 line_text = change['line'] if change['line'] else 'see diff'
                 reason_text = change['reason'] if change['reason'] else 'no reason provided'
-                lines.append(f'- `{line_text}` — {reason_text}')
+                lines.append(f'- `{line_text}` - {reason_text}')
     lines.append('')
 
     report_path = folder / 'DIFF_REPORT.md'
