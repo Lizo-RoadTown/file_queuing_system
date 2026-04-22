@@ -65,6 +65,7 @@ jobs:
             const reply = (msg) => github.rest.issues.createComment({
               ...context.repo, issue_number: issue.number, body: msg,
             });
+
             const setLabels = async (toAdd, toRemove) => {
               for (const l of toRemove) {
                 try { await github.rest.issues.removeLabel({
@@ -81,10 +82,10 @@ jobs:
             const updateIssuePathMarkers = async (oldPath, newPath) => {
               let newBody = issue.body || '';
               if ((issue.body || '').match(/<!--\s*folder:\s*(.+?)\s*-->/)) {
-                newBody = newBody.replace(/<!--\s*folder:\s*.+?\s*-->/, `<!-- folder: ${newPath} -->`);
+                newBody = newBody.replace(/<!--\s*folder:\s*.+?\s*-->/, '<!-- folder: ' + newPath + ' -->');
               }
               if ((issue.body || '').match(/<!--\s*path:\s*(.+?)\s*-->/)) {
-                newBody = newBody.replace(/<!--\s*path:\s*.+?\s*-->/, `<!-- path: ${newPath} -->`);
+                newBody = newBody.replace(/<!--\s*path:\s*.+?\s*-->/, '<!-- path: ' + newPath + ' -->');
               }
               if (newBody !== (issue.body || '')) {
                 await github.rest.issues.update({
@@ -95,31 +96,35 @@ jobs:
               }
             };
 
-            const moveTrackedItemToStage = async (sourcePath, stageDir) => {
-              const itemName = path.basename(sourcePath);
-              const destPath = `reviews/${stageDir}/${itemName}`;
-              if (sourcePath === destPath) return { moved: false, path: sourcePath };
-              if (!sourcePath.startsWith('reviews/')) {
-                throw new Error(`Tracked path is outside reviews/: ${sourcePath}`);
-              }
-              if (fs.existsSync(destPath)) {
-                throw new Error(`Destination already exists: ${destPath}`);
-              }
-              fs.mkdirSync(`reviews/${stageDir}`, { recursive: true });
+            const gitConfig = () => {
               execFileSync('git', ['config', 'user.name', 'github-actions[bot]']);
               execFileSync('git', ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']);
+            };
+
+            const moveTrackedItemToStage = async (sourcePath, stageDir) => {
+              const itemName = path.basename(sourcePath);
+              const destPath = 'reviews/' + stageDir + '/' + itemName;
+              if (sourcePath === destPath) return { moved: false, path: sourcePath };
+              if (!sourcePath.startsWith('reviews/')) {
+                throw new Error('Tracked path is outside reviews/: ' + sourcePath);
+              }
+              if (fs.existsSync(destPath)) {
+                throw new Error('Destination already exists: ' + destPath);
+              }
+              fs.mkdirSync('reviews/' + stageDir, { recursive: true });
+              gitConfig();
               execFileSync('git', ['mv', sourcePath, destPath]);
               execFileSync('git', ['add', '-A']);
               const pending = execFileSync('git', ['status', '--short']).toString().trim();
               if (pending) {
-                execFileSync('git', ['commit', '-m', `Queue move: ${itemName} -> reviews/${stageDir} (refs #${issue.number})`]);
+                execFileSync('git', ['commit', '-m', 'Queue move: ' + itemName + ' -> reviews/' + stageDir + ' (refs #' + issue.number + ')']);
                 execFileSync('git', ['push']);
               }
               await updateIssuePathMarkers(sourcePath, destPath);
               return { moved: true, path: destPath };
             };
 
-            // Extract the tracked review item from issue body markers.
+            // Extract the tracked review item from issue body markers
             const folderMatch = (issue.body || '').match(/<!--\s*folder:\s*(.+?)\s*-->/);
             const folder = folderMatch ? folderMatch[1] : null;
             const pathMatch = (issue.body || '').match(/<!--\s*path:\s*(.+?)\s*-->/);
@@ -129,7 +134,7 @@ jobs:
             const isFolderItem = !!trackedStat && trackedStat.isDirectory();
             const isFileItem = !!trackedStat && trackedStat.isFile();
 
-            // Read reviewer_1 from metadata.yml if present.
+            // Read reviewer_1 from metadata if present
             let reviewer1 = null;
             if (folder && fs.existsSync(path.join(folder, 'metadata.yml'))) {
               const yml = fs.readFileSync(path.join(folder, 'metadata.yml'), 'utf8');
@@ -138,22 +143,22 @@ jobs:
             }
 
             const reviewerLine = reviewer1
-              ? `The recorded first reviewer is @${reviewer1}.`
+              ? 'The recorded first reviewer is @' + reviewer1 + '.'
               : 'No first reviewer is recorded for this item, so the workflow cannot enforce reviewer separation automatically.';
 
             // ---------- /checkout ----------
             if (cmd === '/checkout') {
               if (labels.includes('awaiting-review-2')) {
                 if (!trackedPath) {
-                  await reply(`Could not determine which repository item this issue tracks (missing \`<!-- folder: ... -->\` or \`<!-- path: ... -->\` marker). Aborting checkout - contact the maintainer.`);
+                  await reply('Could not determine which repository item this issue tracks (missing `<!-- folder: ... -->` or `<!-- path: ... -->` marker). Aborting checkout - contact the maintainer.');
                   return;
                 }
                 if (!hasTrackedPath) {
-                  await reply(`The tracked item for this issue was not found at \`${trackedPath}\`. Aborting checkout - contact the maintainer.`);
+                  await reply('The tracked item for this issue was not found at `' + trackedPath + '`. Aborting checkout - contact the maintainer.');
                   return;
                 }
                 if (reviewer1 && reviewer1 === commenter) {
-                  await reply(`@${commenter} you were the **first reviewer** for this item - a different reviewer must perform the second review.`);
+                  await reply('@' + commenter + ' you were the **first reviewer** for this item - a different reviewer must perform the second review.');
                   return;
                 }
                 await github.rest.issues.addAssignees({
@@ -164,63 +169,86 @@ jobs:
                   const moved = await moveTrackedItemToStage(trackedPath, 'in-progress');
                   activePath = moved.path;
                 } catch (err) {
-                  await reply(`Could not move the tracked item into \`reviews/in-progress/\`: ${err.message}`);
+                  await reply('Could not move the tracked item into `reviews/in-progress/`: ' + err.message);
                   return;
                 }
 
-                // Auto-copy curator notebook for R2
+                // Handle folder-based papers
                 if (isFolderItem) {
-                  const metaPath = path.join(activePath, 'metadata.yml');
+                  const metaPath = fs.existsSync(path.join(activePath, 'metadata.yml'))
+                    ? path.join(activePath, 'metadata.yml')
+                    : path.join(activePath, 'review_metadata.yml');
                   if (fs.existsSync(metaPath)) {
                     const meta = fs.readFileSync(metaPath, 'utf8');
-                    const notebookMatch = meta.match(/^notebook:\s*(.+?)\s*$/m);
+                    const notebookMatch = meta.match(/^(?:notebook|original_notebook):\s*(.+?)\s*$/m);
                     const notebookName = notebookMatch ? notebookMatch[1] : null;
-                    const updatedMeta = meta.replace(
-                      /^reviewer_2:\s*.*$/m,
-                      `reviewer_2: ${commenter}`
-                    );
+                    const updatedMeta = meta.replace(/^reviewer_2:\s*.*$/m, 'reviewer_2: ' + commenter);
                     fs.writeFileSync(metaPath, updatedMeta);
                     if (notebookName) {
                       const r1Path = path.join(activePath, notebookName);
                       const r2Path = path.join(activePath, 'r2_notebook.ipynb');
                       if (fs.existsSync(r1Path) && !fs.existsSync(r2Path)) {
                         fs.copyFileSync(r1Path, r2Path);
+                        gitConfig();
                         execFileSync('git', ['add', r2Path]);
                         execFileSync('git', ['add', metaPath]);
-                        execFileSync('git', ['commit', '-m',
-                          'Review copy: r2_notebook created for @' + commenter + ' (refs #' + issue.number + ')'
-                        ]);
+                        execFileSync('git', ['commit', '-m', 'Review copy: r2_notebook created for @' + commenter + ' (refs #' + issue.number + ')']);
                         execFileSync('git', ['push']);
                       }
                     }
                   }
                 }
 
+                // Handle loose notebook files - convert to folder structure
+                if (isFileItem && activePath.endsWith('.ipynb')) {
+                  const notebookName = path.basename(activePath);
+                  const folderName = notebookName.replace('.ipynb', '');
+                  const folderPath = path.join(path.dirname(activePath), folderName);
+                  fs.mkdirSync(path.join(folderPath, 'original'), { recursive: true });
+                  fs.mkdirSync(path.join(folderPath, 'review-copy'), { recursive: true });
+                  fs.mkdirSync(path.join(folderPath, 'notes'), { recursive: true });
+                  fs.copyFileSync(activePath, path.join(folderPath, 'original', notebookName));
+                  const reviewName = notebookName.replace('.ipynb', '_rvd.ipynb');
+                  fs.copyFileSync(activePath, path.join(folderPath, 'review-copy', reviewName));
+                  const metadata = 'paper_id: "' + folderName + '"\nstatus: "in-progress"\nreviewer: "' + commenter + '"\ncheckout_timestamp: "' + new Date().toISOString() + '"\noriginal_notebook: "' + notebookName + '"\nreview_copy_notebook: "' + reviewName + '"\napproval_timestamp: null\napproved_by: null\n';
+                  fs.writeFileSync(path.join(folderPath, 'review_metadata.yml'), metadata);
+                  fs.unlinkSync(activePath);
+                  gitConfig();
+                  execFileSync('git', ['add', folderPath]);
+                  execFileSync('git', ['rm', '--cached', activePath]);
+                  execFileSync('git', ['commit', '-m', 'Convert: ' + notebookName + ' to folder for @' + commenter + ' (refs #' + issue.number + ')']);
+                  execFileSync('git', ['push']);
+                  await updateIssuePathMarkers(activePath, folderPath);
+                  await reply('@' + commenter + ' the loose notebook has been converted to a review folder at `' + folderPath + '`.\n\nYour copy is at `' + folderPath + '/review-copy/' + reviewName + '`. Open this file - do not edit the original. Add `#SOURCE: p.X` where you found each value, and `#CHANGED: reason` above anything you change. When done, comment `/approve` to complete the review.');
+                  await setLabels(['review-2-active'], ['awaiting-review-2', 'complete']);
+                  return;
+                }
+
                 await setLabels(['review-2-active'], ['awaiting-review-2', 'complete']);
                 const itemSummary = isFolderItem
-                  ? `This issue is linked to the review folder \`${activePath}\`.`
+                  ? 'This issue is linked to the review folder `' + activePath + '`.'
                   : isFileItem
-                    ? `This issue is linked to the standalone review file \`${activePath}\`.`
-                    : `This issue is linked to \`${activePath}\`.`;
+                    ? 'This issue is linked to the standalone review file `' + activePath + '`.'
+                    : 'This issue is linked to `' + activePath + '`.';
                 const notebookMsg = isFolderItem
-                  ? `\n\nYour copy is ready at \`${activePath}/r2_notebook.ipynb\`. Open this file - do not edit the original. Add \`#SOURCE: p.X\` where you found each value, and \`#CHANGED: reason\` above anything you change.`
+                  ? '\n\nYour copy is ready at `' + activePath + '/r2_notebook.ipynb`. Open this file - do not edit the original. Add `#SOURCE: p.X` where you found each value, and `#CHANGED: reason` above anything you change.'
                   : '';
-                await reply(`@${commenter} checked out for **second review**. The tracked item was moved to \`reviews/in-progress/\` and the issue is now \`review-2-active\`. ${itemSummary} ${reviewerLine}${notebookMsg} When done, comment \`/approve\` to move it to completed, or \`/release\` to return it to \`awaiting-review-2\`.`);
+                await reply('@' + commenter + ' checked out for **second review**. The tracked item was moved to `reviews/in-progress/` and the issue is now `review-2-active`. ' + itemSummary + ' ' + reviewerLine + notebookMsg + ' When done, comment `/approve` to move it to completed, or `/release` to return it to `awaiting-review-2`.');
                 return;
               }
-              await reply(`This item is not currently checkable-out (state: \`${labels.join(', ')}\`).`);
+              await reply('This item is not currently checkable-out (state: `' + labels.join(', ') + '`).');
               return;
             }
 
             // ---------- /release ----------
             if (cmd === '/release') {
               if (!labels.includes('review-2-active')) {
-                await reply(`\`/release\` is only valid during an active review (current: \`${labels.join(', ')}\`).`);
+                await reply('`/release` is only valid during an active review (current: `' + labels.join(', ') + '`).');
                 return;
               }
               const assignees = (issue.assignees || []).map(a => a.login);
               if (!assignees.includes(commenter)) {
-                await reply(`@${commenter} you're not the current reviewer on this item.`);
+                await reply('@' + commenter + ' you are not the current reviewer on this item.');
                 return;
               }
               await github.rest.issues.removeAssignees({
@@ -230,65 +258,56 @@ jobs:
                 try {
                   await moveTrackedItemToStage(trackedPath, 'awaiting-review-2');
                 } catch (err) {
-                  await reply(`Could not move the tracked item back to \`reviews/awaiting-review-2/\`: ${err.message}`);
+                  await reply('Could not move the tracked item back to `reviews/awaiting-review-2/`: ' + err.message);
                   return;
                 }
               }
               await setLabels(['awaiting-review-2'], ['review-2-active']);
-              await reply(`Released by @${commenter}. The item is back in \`awaiting-review-2\`.`);
+              await reply('Released by @' + commenter + '. The item is back in `awaiting-review-2`.');
               return;
             }
 
             // ---------- /approve ----------
             if (cmd === '/approve') {
               if (!labels.includes('review-2-active')) {
-                await reply(`\`/approve\` is only valid during second review (current: \`${labels.join(', ')}\`).`);
+                await reply('`/approve` is only valid during second review (current: `' + labels.join(', ') + '`).');
                 return;
               }
               const assignees = (issue.assignees || []).map(a => a.login);
               if (!assignees.includes(commenter)) {
-                await reply(`@${commenter} only the assigned second reviewer can approve.`);
+                await reply('@' + commenter + ' only the assigned second reviewer can approve.');
                 return;
               }
               if (reviewer1 && reviewer1 === commenter) {
-                await reply(`@${commenter} integrity check failed: you are recorded as the first reviewer.`);
+                await reply('@' + commenter + ' integrity check failed: you are recorded as the first reviewer.');
                 return;
               }
 
-              // Move to completed first
+              // Move to completed
               let completedPath = trackedPath;
               if (trackedPath && hasTrackedPath) {
                 try {
                   const moved = await moveTrackedItemToStage(trackedPath, 'completed');
                   completedPath = moved.path;
                 } catch (err) {
-                  await reply(`Could not move to completed: ${err.message}`);
+                  await reply('Could not move to completed: ' + err.message);
                   return;
                 }
               }
 
-              // Run diff report if this is a folder with review_metadata.yml
+              // Run diff report if folder has review_metadata.yml
               let diffSummary = '';
-              if (isFolderItem && completedPath) {
+              if (completedPath && fs.statSync(completedPath).isDirectory()) {
                 const metaPath = path.join(completedPath, 'review_metadata.yml');
                 if (fs.existsSync(metaPath)) {
                   try {
-                    // Update approval info in metadata
                     let meta = fs.readFileSync(metaPath, 'utf8');
-                    meta = meta.replace(/^approval_timestamp:.*$/m, `approval_timestamp: "${new Date().toISOString()}"`);
-                    meta = meta.replace(/^approved_by:.*$/m, `approved_by: "${commenter}"`);
-                    meta = meta.replace(/^status:.*$/m, `status: "completed"`);
+                    meta = meta.replace(/^approval_timestamp:.*$/m, 'approval_timestamp: "' + new Date().toISOString() + '"');
+                    meta = meta.replace(/^approved_by:.*$/m, 'approved_by: "' + commenter + '"');
+                    meta = meta.replace(/^status:.*$/m, 'status: "completed"');
                     fs.writeFileSync(metaPath, meta);
-
-                    // Run diff script
-                    const result = execFileSync('python', [
-                      'scripts/generate_diff_report.py',
-                      completedPath
-                    ]).toString().trim();
-
+                    const result = execFileSync('python', ['scripts/generate_diff_report.py', completedPath]).toString().trim();
                     console.log('Diff result:', result);
-
-                    // Read the curator notification from the report
                     const reportPath = path.join(completedPath, 'DIFF_REPORT.md');
                     if (fs.existsSync(reportPath)) {
                       const report = fs.readFileSync(reportPath, 'utf8');
@@ -297,14 +316,10 @@ jobs:
                         diffSummary = notifMatch[1].trim();
                       }
                     }
-
-                    // Commit report
+                    gitConfig();
                     execFileSync('git', ['add', completedPath]);
-                    execFileSync('git', ['commit', '-m',
-                      'Diff report: ' + path.basename(completedPath) + ' (refs #' + issue.number + ')'
-                    ]);
+                    execFileSync('git', ['commit', '-m', 'Diff report: ' + path.basename(completedPath) + ' (refs #' + issue.number + ')']);
                     execFileSync('git', ['push']);
-
                   } catch (err) {
                     console.log('Diff report error:', err.message);
                     diffSummary = 'Diff report could not be generated - run manually with `python scripts/generate_diff_report.py ' + completedPath + '`';
@@ -313,11 +328,9 @@ jobs:
               }
 
               await setLabels(['complete'], ['review-2-active']);
-
               const approvalMsg = diffSummary
-                ? `Approved by @${commenter}. Review is complete.\n\n---\n\n${diffSummary}\n\nFull report: \`${completedPath}/DIFF_REPORT.md\``
-                : `Approved by @${commenter}. The review is now marked complete.`;
-
+                ? 'Approved by @' + commenter + '. Review is complete.\n\n---\n\n' + diffSummary + '\n\nFull report: `' + completedPath + '/DIFF_REPORT.md`'
+                : 'Approved by @' + commenter + '. The review is now marked complete.';
               await reply(approvalMsg);
               return;
             }
