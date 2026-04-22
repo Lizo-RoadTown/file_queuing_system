@@ -147,6 +147,64 @@ Each review folder should contain:
 - (Recommended) At least one image file
 
 ---
+---
+
+## Second review — notebook comparison
+
+When you `/checkout` a folder-based paper the system now automatically creates a copy of the curator's notebook for you to work in. This means there are two notebooks in the folder:
+**Open `r2_notebook.ipynb` — not the original.**
+
+---
+
+### How to document your changes
+
+As you review the notebook, you will either agree with the curator or find something different. Here is how to record both:
+
+**If you agree — do nothing.** Leave the cell exactly as it is.
+
+**If you change something — add a `#CHANGED:` comment explaining why.**
+
+Put it above the line you changed or at the end of the line:
+
+```python
+# SOURCE: p.6 eq.(3) — recovery rate
+#CHANGED: paper states gamma = 0.1 not 0.14, curator had a typo
+gamma = 0.1
+```
+
+Or inline:
+
+```python
+final_time = 1200.0 #CHANGED: changed from 1.0 to 1200 to match x-axis of figure 1
+```
+
+The reason you write is what goes into the transparency report. Write it so someone reading it six months from now understands why the change was made without having to ask anyone.
+
+---
+
+### Page citations
+
+If you want to help future reviewers find where a value came from, add a `# SOURCE:` comment:
+
+```python
+# SOURCE: p.5 eq.(3) — recovery rate
+gamma = 0.1
+```
+
+This is optional but strongly encouraged. It turns the notebook into its own reference — anyone can open it and immediately know where each number came from.
+
+---
+
+### What happens when you `/approve`
+
+When you comment `/approve` the system automatically:
+
+1. Compares your notebook to the curator's original cell by cell
+2. Counts every individual change you made
+3. Generates a `DIFF_REPORT.md` in the paper folder
+4. Notifies the curator of what changed and why
+
+The diff report looks like this:
 
 ## Commands Reference
 

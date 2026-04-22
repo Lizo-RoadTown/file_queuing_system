@@ -32,8 +32,8 @@ def parse_notebook(path):
         code_lines = []
         current_reason = None
         for line in source.splitlines():
-            if line.strip().startswith('# SOURCE:'):
-                source_cite = line.replace('# SOURCE:', '').strip()
+            if re.search(r'#\s*SOURCE:', line, re.IGNORECASE):
+                 source_cite = re.sub(r'#\s*SOURCE:\s*', '', line, flags=re.IGNORECASE).strip()
             else:
                 match = re.search(r'#\s*CHANGED:\s*(.*)', line, re.IGNORECASE)
                 if match:
