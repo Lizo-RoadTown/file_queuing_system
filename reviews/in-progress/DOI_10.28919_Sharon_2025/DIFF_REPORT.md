@@ -4,7 +4,7 @@
 **Reviewer:** @lmmaganto  
 **DOI:** https://doi.org/10.28919/cmbn/9452  
 **Figure:** 2  
-**Generated:** 2026-04-24 03:32 UTC  
+**Generated:** 2026-04-24 03:44 UTC  
 
 ---
 
@@ -28,8 +28,18 @@ The following cells matched exactly between curator and reviewer.
 ### Cell 1 - no citation
 
 ```diff
-+ 'X'
-+ X = 50
+@@ -5,4 +5,5 @@
+     'Sm',
+     'Im',
++    'X' #CHANGED: made up testing my script
+     
+ ]
+@@ -33,4 +34,5 @@
+     Sm=200.0,
+     Im=10.0
++    X = 50 #CHANGED: made up ignore 
+    
+ )
 ```
 
 **Reasons (2):**
@@ -45,5 +55,5 @@ The following cells matched exactly between curator and reviewer.
 
 2 line(s) changed across 1 cell(s):
 
-- added `'X'`
-- added `X = 50`
+- added `'X' #CHANGED: made up testing my script`
+- added `X = 50 #CHANGED: made up ignore`
