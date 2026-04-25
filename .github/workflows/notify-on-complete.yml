@@ -106,7 +106,7 @@ jobs:
           server_port: ${{ secrets.SMTP_PORT }}
           username: ${{ secrets.SMTP_USER }}
           password: ${{ secrets.SMTP_PASS }}
-          from: SDE Review Queue <${{ secrets.SMTP_USER }}>
+          from: SDE Review Queue <${{ secrets.FROM_EMAIL }}>
           to: ${{ secrets.NOTIFY_TO }}
           subject: "[SDE Review Complete] ${{ steps.resolve.outputs.item_name }}"
           body: |
