@@ -33,9 +33,39 @@ jobs:
             ).toString().split('\n').filter(Boolean);
 
             const folders = new Set();
+            const looseFiles = [];
             for (const f of changed) {
               const m = f.match(/^reviews\/(in-progress|awaiting-review-2|completed)\/([^\/]+)\//);
-              if (m) folders.add(`reviews/${m[1]}/${m[2]}`);
+              if (m) {
+                folders.add(`reviews/${m[1]}/${m[2]}`);
+              } else if (/^reviews\/(in-progress|awaiting-review-2|completed)\/[^\/]+$/.test(f)) {
+                looseFiles.push(f);
+              }
+            }
+
+            if (looseFiles.length > 0) {
+              const body = [
+                '### Submission validation failed',
+                '',
+                'The following files were submitted directly to a review stage folder instead of inside a named subfolder:',
+                ...looseFiles.map(f => `- \`${f}\``),
+                '',
+                'Every submission must be placed inside its own named folder, e.g.:',
+                '```',
+                'reviews/awaiting-review-2/MyPaper/',
+                '  MyPaper.ipynb',
+                '  MyPaper.pdf',
+                '```',
+                '',
+                'See `CONTRIBUTING.md` for the required folder shape.',
+              ].join('\n');
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+              core.setFailed('Loose files at review stage root — every submission must be inside its own named folder.');
+              return;
             }
 
             if (folders.size === 0) {
