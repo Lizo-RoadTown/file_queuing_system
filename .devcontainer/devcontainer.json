@@ -2,8 +2,12 @@
     "name": "epi-sde Review Environment",
     "build": {
         "dockerfile": "Dockerfile",
-        "context": ".."
+        "context": "..",
+        "args": {
+            "CODESPACES": "${localEnv:CODESPACES}"
+        }
     },
+    "postCreateCommand": "conda run -n epi-sde python -c 'import numpy; print(\"Environment ready\")'",
     "customizations": {
         "vscode": {
             "extensions": [

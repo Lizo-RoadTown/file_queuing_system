@@ -1,5 +1,10 @@
 FROM continuumio/miniconda3:latest
 
+ARG CODESPACES=""
+
+# This devcontainer is intended for GitHub Codespaces only.
+RUN test "$CODESPACES" = "true" || (echo "This devcontainer only runs in GitHub Codespaces." && exit 1)
+
 WORKDIR /workspace
 
 # Copy the conda environment spec
