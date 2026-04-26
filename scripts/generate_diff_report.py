@@ -1,9 +1,23 @@
 import sys
 import json
 import re
+import yaml
 from pathlib import Path
 from datetime import datetime
 from difflib import unified_diff
+
+
+def load_team_members(repo_root='.'):
+    mapping_path = Path(repo_root) / 'team_members.yml'
+    if not mapping_path.exists():
+        return {}
+    with open(mapping_path, 'r') as f:
+        data = yaml.safe_load(f)
+    return data.get('members', {})
+
+
+def resolve_github_username(name, members):
+    return members.get(name.strip(), name.strip())
 
 
 def parse_notebook(path):
@@ -90,7 +104,7 @@ def get_line_diff(r1_source, r2_source):
     return removed, added, diff
 
 
-def generate_report(folder_path):
+def generate_report(folder_path, repo_root='.'):
     folder = Path(folder_path)
     meta_path = folder / 'review_metadata.yml'
 
@@ -98,6 +112,7 @@ def generate_report(folder_path):
         print(f'No review_metadata.yml found in {folder}')
         return
 
+    members = load_team_members(repo_root)
     meta = parse_metadata(meta_path)
     original_name = meta.get('original_notebook', '').strip()
     review_name = meta.get('review_copy_notebook', '').strip()
@@ -123,7 +138,8 @@ def generate_report(folder_path):
     if r2_cells and r2_cells[0]['type'] == 'markdown':
         r2_meta = extract_markdown_fields(r2_cells[0]['source'])
 
-    curator = r1_meta.get('Curator', 'unknown')
+    curator_name = r1_meta.get('Curator', 'unknown')
+    curator_github = resolve_github_username(curator_name, members)
     title = r1_meta.get('Title', 'Unknown paper')
     doi = r1_meta.get('DOI', '')
     figure = r1_meta.get('Figure', '')
@@ -159,7 +175,7 @@ def generate_report(folder_path):
     lines = [
         f'# Diff report - {title}',
         f'',
-        f'**Curator:** @{curator}  ',
+        f'**Curator:** @{curator_github}  ',
         f'**Reviewer:** @{reviewer}  ',
         f'**DOI:** {doi}  ',
         f'**Figure:** {figure}  ',
@@ -206,15 +222,12 @@ def generate_report(folder_path):
             f"### Cell {d['cell']} - {d['source_cite']}",
             f'',
         ]
-
-        # Show diff with 2 lines of context above and below each change
         lines += ['```diff']
         for l in d['raw_diff']:
             if not l.startswith('---') and not l.startswith('+++'):
                 lines.append(l)
         lines += ['```', '']
 
-        # Show reasons if provided
         if d['reasons']:
             lines.append(f'**Reasons ({len(d["reasons"])}):**')
             lines.append('')
@@ -225,17 +238,18 @@ def generate_report(folder_path):
             lines.append('**Reason:** not provided')
             lines.append('')
 
-    # Curator notification
     lines += [
         f'---',
         f'',
         f'## Curator notification',
         f'',
-        f'@{curator} - your submission has been second reviewed by @{reviewer}.',
+        f'@{curator_github} - your submission has been second reviewed by @{reviewer}.',
         f'',
     ]
     if total_changes == 0:
         lines.append('All cells agreed - no differences found.')
+        lines.append('')
+        lines.append('Comment `/complete` to move this to completed.')
     else:
         lines.append(f'{total_changes} line(s) changed across {len(disagreed)} cell(s):')
         lines.append('')
@@ -249,6 +263,11 @@ def generate_report(folder_path):
             if len(d['removed']) > len(d['added']):
                 for rem in d['removed'][len(d['added']):]:
                     lines.append(f'- removed `{rem}`')
+        lines.append('')
+        lines.append('If you agree with the changes comment `/complete` to finalize.')
+        lines.append('If you disagree comment on this issue explaining why.')
+        lines.append('The reviewer can update their notebook and comment `/approve` again to regenerate this report.')
+
     lines.append('')
 
     report_path = folder / 'DIFF_REPORT.md'
@@ -257,9 +276,10 @@ def generate_report(folder_path):
 
     print(f'Report written to {report_path}')
     print(f'{len(agreed)} agreements, {total_changes} lines changed across {len(disagreed)} cells')
+    print(f'curator_github:{curator_github}')
 
     return {
-        'curator': curator,
+        'curator': curator_github,
         'title': title,
         'total_changes': total_changes,
         'disagreed': disagreed

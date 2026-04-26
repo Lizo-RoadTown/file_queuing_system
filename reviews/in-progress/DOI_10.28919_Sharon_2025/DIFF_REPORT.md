@@ -1,10 +1,10 @@
 # Diff report - STOCHASTIC DIFFERENTIAL EQUATIONS FOR SIR MALARIA MODEL
 
-**Curator:** @Jamaal Porchia  
+**Curator:** @Jampip  
 **Reviewer:** @lmmaganto  
 **DOI:** https://doi.org/10.28919/cmbn/9452  
 **Figure:** 2  
-**Generated:** 2026-04-24 03:44 UTC  
+**Generated:** 2026-04-26 18:14 UTC  
 
 ---
 
@@ -51,9 +51,13 @@ The following cells matched exactly between curator and reviewer.
 
 ## Curator notification
 
-@Jamaal Porchia - your submission has been second reviewed by @lmmaganto.
+@Jampip - your submission has been second reviewed by @lmmaganto.
 
 2 line(s) changed across 1 cell(s):
 
 - added `'X' #CHANGED: made up testing my script`
 - added `X = 50 #CHANGED: made up ignore`
+
+If you agree with the changes comment `/complete` to finalize.
+If you disagree comment on this issue explaining why.
+The reviewer can update their notebook and comment `/approve` again to regenerate this report.

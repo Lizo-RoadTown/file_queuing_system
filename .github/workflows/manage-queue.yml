@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   handle-command:
-    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve'))
+    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve') || startsWith(github.event.comment.body, '/complete'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -22,7 +22,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python dependencies
-        run: pip install nbformat
+        run: pip install pyyaml
 
       - name: Verify commenter is an authorized reviewer
         id: auth
@@ -39,7 +39,7 @@ jobs:
             } catch (e) {
               await github.rest.issues.createComment({
                 ...context.repo, issue_number: context.issue.number,
-                body: `@${commenter} sorry - only authorized reviewers can run slash commands here.`,
+                body: '@' + commenter + ' sorry - only authorized reviewers can run slash commands here.',
               });
               core.setFailed('unauthorized');
               return;
@@ -122,6 +122,34 @@ jobs:
               }
               await updateIssuePathMarkers(sourcePath, destPath);
               return { moved: true, path: destPath };
+            };
+
+            const resolveCurator = (trackedPath) => {
+              try {
+                const teamFile = fs.readFileSync('team_members.yml', 'utf8');
+                const members = {};
+                const lines = teamFile.split('\n');
+                let inMembers = false;
+                for (const line of lines) {
+                  if (line.trim() === 'members:') { inMembers = true; continue; }
+                  if (inMembers && line.includes(':')) {
+                    const match = line.match(/"([^"]+)":\s*"([^"]+)"/);
+                    if (match) members[match[1]] = match[2];
+                  }
+                }
+                const metaPath = path.join(trackedPath, 'review_metadata.yml');
+                if (fs.existsSync(metaPath)) {
+                  const meta = fs.readFileSync(metaPath, 'utf8');
+                  const curatorMatch = meta.match(/^curator:\s*(.+?)\s*$/m);
+                  if (curatorMatch) {
+                    const name = curatorMatch[1].trim();
+                    return members[name] || name;
+                  }
+                }
+              } catch (e) {
+                console.log('Could not resolve curator:', e.message);
+              }
+              return null;
             };
 
             // Extract the tracked review item from issue body markers
@@ -210,7 +238,22 @@ jobs:
                   fs.copyFileSync(activePath, path.join(folderPath, 'original', notebookName));
                   const reviewName = notebookName.replace('.ipynb', '_rvd.ipynb');
                   fs.copyFileSync(activePath, path.join(folderPath, 'review-copy', reviewName));
-                  const metadata = 'paper_id: "' + folderName + '"\nstatus: "in-progress"\nreviewer: "' + commenter + '"\ncheckout_timestamp: "' + new Date().toISOString() + '"\noriginal_notebook: "' + notebookName + '"\nreview_copy_notebook: "' + reviewName + '"\napproval_timestamp: null\napproved_by: null\n';
+
+                  // Read curator name from notebook markdown cell
+                  let curatorName = 'unknown';
+                  try {
+                    const nb = JSON.parse(fs.readFileSync(activePath, 'utf8'));
+                    const firstCell = nb.cells.find(c => c.cell_type === 'markdown');
+                    if (firstCell) {
+                      const src = firstCell.source.join('');
+                      const m = src.match(/Curator:\s*(.+)/);
+                      if (m) curatorName = m[1].trim();
+                    }
+                  } catch (e) {
+                    console.log('Could not read curator from notebook:', e.message);
+                  }
+
+                  const metadata = 'paper_id: "' + folderName + '"\nstatus: "in-progress"\ncurator: "' + curatorName + '"\nreviewer: "' + commenter + '"\ncheckout_timestamp: "' + new Date().toISOString() + '"\noriginal_notebook: "' + notebookName + '"\nreview_copy_notebook: "' + reviewName + '"\napproval_timestamp: null\napproved_by: null\n';
                   fs.writeFileSync(path.join(folderPath, 'review_metadata.yml'), metadata);
                   fs.unlinkSync(activePath);
                   gitConfig();
@@ -270,7 +313,7 @@ jobs:
             // ---------- /approve ----------
             if (cmd === '/approve') {
               if (!labels.includes('review-2-active')) {
-                await reply('`/approve` is only valid during second review (current: `' + labels.join(', ') + '`).');
+                await reply('`/approve` is only valid during an active review (current: `' + labels.join(', ') + '`).');
                 return;
               }
               const assignees = (issue.assignees || []).map(a => a.login);
@@ -280,6 +323,77 @@ jobs:
               }
               if (reviewer1 && reviewer1 === commenter) {
                 await reply('@' + commenter + ' integrity check failed: you are recorded as the first reviewer.');
+                return;
+              }
+
+              // Run diff report
+              let diffSummary = '';
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                const metaPath = path.join(trackedPath, 'review_metadata.yml');
+                if (fs.existsSync(metaPath)) {
+                  try {
+                    let meta = fs.readFileSync(metaPath, 'utf8');
+                    meta = meta.replace(/^approval_timestamp:.*$/m, 'approval_timestamp: "' + new Date().toISOString() + '"');
+                    meta = meta.replace(/^approved_by:.*$/m, 'approved_by: "' + commenter + '"');
+                    fs.writeFileSync(metaPath, meta);
+
+                    const result = execFileSync('python', [
+                      'scripts/generate_diff_report.py',
+                      trackedPath
+                    ]).toString().trim();
+
+                    console.log('Diff result:', result);
+
+                    // Extract curator github from script output
+                    const curatorMatch = result.match(/curator_github:(.+)/);
+                    if (curatorMatch) curatorGithub = curatorMatch[1].trim();
+
+                    const reportPath = path.join(trackedPath, 'DIFF_REPORT.md');
+                    if (fs.existsSync(reportPath)) {
+                      const report = fs.readFileSync(reportPath, 'utf8');
+                      const notifMatch = report.match(/## Curator notification\n([\s\S]*?)$/);
+                      if (notifMatch) diffSummary = notifMatch[1].trim();
+                    }
+
+                    gitConfig();
+                    execFileSync('git', ['add', trackedPath]);
+                    execFileSync('git', ['commit', '-m', 'Diff report: ' + path.basename(trackedPath) + ' (refs #' + issue.number + ')']);
+                    execFileSync('git', ['push']);
+
+                  } catch (err) {
+                    console.log('Diff report error:', err.message);
+                    diffSummary = 'Diff report could not be generated - run manually with `python scripts/generate_diff_report.py ' + trackedPath + '`';
+                  }
+                }
+              }
+
+              // Change label to curator-review — do not move to completed yet
+              await setLabels(['curator-review'], ['review-2-active']);
+
+              const approvalMsg = diffSummary
+                ? '@' + commenter + ' submitted their review.\n\n---\n\n' + diffSummary + '\n\nFull report: `' + trackedPath + '/DIFF_REPORT.md`'
+                : '@' + commenter + ' submitted their review. No diff report generated.';
+
+              await reply(approvalMsg);
+              return;
+            }
+
+            // ---------- /complete ----------
+            if (cmd === '/complete') {
+              if (!labels.includes('curator-review')) {
+                await reply('`/complete` is only valid after a reviewer has submitted their review (current: `' + labels.join(', ') + '`).');
+                return;
+              }
+
+              // Verify commenter is the curator
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                curatorGithub = resolveCurator(trackedPath);
+              }
+
+              if (curatorGithub && commenter !== curatorGithub) {
+                await reply('@' + commenter + ' only the curator (@' + curatorGithub + ') can mark this complete.');
                 return;
               }
 
@@ -295,42 +409,26 @@ jobs:
                 }
               }
 
-              // Run diff report if folder has review_metadata.yml
-              let diffSummary = '';
+              // Update metadata
               if (completedPath && fs.statSync(completedPath).isDirectory()) {
                 const metaPath = path.join(completedPath, 'review_metadata.yml');
                 if (fs.existsSync(metaPath)) {
-                  try {
-                    let meta = fs.readFileSync(metaPath, 'utf8');
-                    meta = meta.replace(/^approval_timestamp:.*$/m, 'approval_timestamp: "' + new Date().toISOString() + '"');
-                    meta = meta.replace(/^approved_by:.*$/m, 'approved_by: "' + commenter + '"');
-                    meta = meta.replace(/^status:.*$/m, 'status: "completed"');
-                    fs.writeFileSync(metaPath, meta);
-                    const result = execFileSync('python', ['scripts/generate_diff_report.py', completedPath]).toString().trim();
-                    console.log('Diff result:', result);
-                    const reportPath = path.join(completedPath, 'DIFF_REPORT.md');
-                    if (fs.existsSync(reportPath)) {
-                      const report = fs.readFileSync(reportPath, 'utf8');
-                      const notifMatch = report.match(/## Curator notification\n([\s\S]*?)$/);
-                      if (notifMatch) {
-                        diffSummary = notifMatch[1].trim();
-                      }
-                    }
-                    gitConfig();
-                    execFileSync('git', ['add', completedPath]);
-                    execFileSync('git', ['commit', '-m', 'Diff report: ' + path.basename(completedPath) + ' (refs #' + issue.number + ')']);
-                    execFileSync('git', ['push']);
-                  } catch (err) {
-                    console.log('Diff report error:', err.message);
-                    diffSummary = 'Diff report could not be generated - run manually with `python scripts/generate_diff_report.py ' + completedPath + '`';
-                  }
+                  let meta = fs.readFileSync(metaPath, 'utf8');
+                  meta = meta.replace(/^status:.*$/m, 'status: "completed"');
+                  fs.writeFileSync(metaPath, meta);
+                  gitConfig();
+                  execFileSync('git', ['add', metaPath]);
+                  execFileSync('git', ['commit', '-m', 'Complete: ' + path.basename(completedPath) + ' approved by @' + commenter + ' (refs #' + issue.number + ')']);
+                  execFileSync('git', ['push']);
                 }
               }
 
-              await setLabels(['complete'], ['review-2-active']);
-              const approvalMsg = diffSummary
-                ? 'Approved by @' + commenter + '. Review is complete.\n\n---\n\n' + diffSummary + '\n\nFull report: `' + completedPath + '/DIFF_REPORT.md`'
-                : 'Approved by @' + commenter + '. The review is now marked complete.';
-              await reply(approvalMsg);
+              await setLabels(['complete'], ['curator-review']);
+              await github.rest.issues.update({
+                ...context.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+              await reply('Completed by @' + commenter + '. The review is finalized and moved to `reviews/completed/`. Issue closed.');
               return;
             }
