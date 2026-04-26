@@ -189,8 +189,26 @@ Explain what you think is wrong. The reviewer will update their notebook and res
 |---|---|---|
 | `#SOURCE: p.X eq.(Y)` | Curator and reviewer | Where this value came from in the paper |
 | `#CHANGED: reason` | Reviewer only | Why this line was changed from the original |
+| `#DISPUTE: reason` | Curator only | Why they disagree with the reviewer's change |
 
-Both work with or without a space after `#`. Capitalization does not matter.
+All three work with or without a space after `#`. Capitalization does not matter.
+
+**Example of a disputed change:**
+
+Reviewer writes:
+```python
+#CHANGED: paper states gamma = 0.1 not 0.14
+gamma = 0.1
+```
+
+Curator disputes it by opening the reviewer notebook and adding:
+```python
+#DISPUTE: 0.14 is correct, see supplementary table S2 p.12
+#CHANGED: paper states gamma = 0.1 not 0.14
+gamma = 0.1
+```
+
+Reviewer sees the dispute, checks p.12, and either reverts their change or adds more evidence with another `#CHANGED:` comment. They then comment `/approve` again to regenerate the diff report.
 
 ---
 
@@ -198,11 +216,12 @@ Both work with or without a space after `#`. Capitalization does not matter.
 
 | Command | Who can use it | When | What happens |
 |---|---|---|---|
-| `/checkout` | Any reviewer | Issue is `awaiting-review-2` | Assigns you, moves files to `in-progress`, creates your notebook copy |
-| `/approve` | Assigned reviewer | Issue is `review-2-active` | Generates diff report, notifies curator, sets `curator-review` |
+| `/checkout` | Any reviewer | Issue is `awaiting-review-2` | Assigns you, moves files to in-progress, creates your notebook copy |
+| `/approve` | Assigned reviewer | Issue is `review-2-active` | Generates diff report, notifies curator, sets curator-review |
 | `/complete` | Curator only | Issue is `curator-review` | Moves to completed, closes issue |
-| `/release` | Assigned reviewer | Issue is `review-2-active` | Returns files to `awaiting-review-2`, unassigns you |
+| `/release` | Assigned reviewer | Issue is `review-2-active` | Returns files to awaiting-review-2, unassigns you |
 
+> `/complete` can only be used by the curator of that paper. The system checks this automatically using `team_members.yml`. If your name is not in that file contact the repo maintainer.
 ---
 
 ## If something goes wrong
