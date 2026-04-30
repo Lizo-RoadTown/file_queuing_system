@@ -4,140 +4,177 @@ Welcome! This guide walks you through how to review manuscripts in this system. 
 
 ---
 
-## The Review Flow
+## How the system works
 
-Here's the entire process as a flowchart:
+This repository is a shared queue for second reviews of scientific manuscripts and Jupyter notebooks. The goal is reproducibility and transparency — every decision made during a review is recorded automatically so nobody has to ask anyone what happened or why.
 
-```
-┌─────────────────────────────┐
-│  Find an issue labeled       │
-│  "awaiting-review-2"        │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│  Comment: /checkout          │
-│  (assigns you, moves files   │
-│   to reviews/in-progress/)   │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│  Do your review work         │
-│  • Re-run the notebook       │
-│  • Check it matches the PDF  │
-│  • Add comments/tags as      │
-│    needed on the issue       │
-└──────────────┬──────────────┘
-               ▼
-┌─────────────────────────────┐
-│  Comment: /approve           │
-│  (marks complete, moves      │
-│   files to reviews/completed)│
-└─────────────────────────────┘
-```
+Here is what the system does for you automatically:
 
-That's it. Two commands: `/checkout` to start, `/approve` to finish.
+- Creates a copy of the curator's notebook for you to work in
+- Compares your notebook to the original when you finish
+- Records every line you changed and every reason you gave
+- Notifies the curator of what changed
+- Gives the curator a chance to agree or dispute before anything is finalized
+- Moves files through the queue and closes issues without manual work
 
 ---
 
-## Step by Step
+## The full review flow
+
+```mermaid
+flowchart TD
+    A[Curator submits notebook\nissue created — awaiting-review-2] --> B
+
+    B[Reviewer comments /checkout\nfiles move to in-progress\nnotebook copy created automatically] --> C
+
+    C[Reviewer opens review-copy notebook\nre-runs notebook, checks PDF\nadds CHANGED for any changes\nadds SOURCE for page citations] --> D
+
+    D[Reviewer comments /approve\ndiff report generated\ncurator notified\nlabel changes to curator-review] --> E
+
+    E{Curator reads DIFF_REPORT.md} --> |agrees| F
+    E --> |disputes| G
+
+    F[Curator comments /complete\nfiles move to completed\nissue closes]
+
+    G[Curator adds DISPUTE reason\ncomments on issue\nreviewer updates notebook\nreviewer comments /approve again] --> D
+
+    style A fill:#8B5CF6,color:#fff
+    style B fill:#0F6E56,color:#fff
+    style C fill:#0F6E56,color:#fff
+    style D fill:#0F6E56,color:#fff
+    style E fill:#BA7517,color:#fff
+    style F fill:#3B6D11,color:#fff
+    style G fill:#993C1D,color:#fff
+```
+
+
+
+## Step by step
 
 ### 1. Find something to review
 
-**On GitHub (in your browser):**
+Go to the repository Issues tab. Look for issues with the yellow `awaiting-review-2` label. Click one to read what it is about.
 
-1. Go to the repository's **Issues** tab
-2. Look for issues with the yellow `awaiting-review-2` label
-3. Click on one to read what it's about
+The issue body will tell you which paper folder or notebook it tracks.
 
-> **Tip:** The issue will have a link or description of the manuscript and notebook you'll be reviewing.
+> You cannot review something you curated yourself. The system checks this automatically.
+
+---
 
 ### 2. Claim it
 
-**Comment `/checkout` on the issue.** That's all you need to type.
+Comment `/checkout` on the issue. That is all you need to type.
 
 What happens automatically:
 - You get assigned to the issue
 - The files move from `reviews/awaiting-review-2/` to `reviews/in-progress/`
 - The label changes to `review-2-active`
+- **Your copy of the notebook is created automatically**
 
-> **Note:** If someone else already did the first review, the system won't let that same person do the second review. This is checked automatically.
+If the paper was submitted as a loose notebook file, the system converts it into a folder with the right structure automatically.
 
-### 3. Do your review
+---
 
-Pull the latest files to your computer and do your work:
-
-**In VS Code (preferred):**
-
-1. Open the **Source Control** panel (click the branch icon in the left sidebar)
-2. Click the **"..."** menu at the top → **Pull**
-3. Open the notebook in `reviews/in-progress/` and do your review
-
-**In the terminal (backup):**
+### 3. Pull the files and open your copy
 
 ```powershell
 git pull
 ```
 
-What "doing your review" means:
-- Open and re-run the Jupyter notebook
-- Compare the notebook's results against the manuscript PDF
-- Note anything that doesn't match or needs attention
-
-### 4. Save and push your work
-
-After you've done your review work, you need to send your changes back to GitHub.
-
-**In VS Code (preferred):**
-
-1. Open the **Source Control** panel
-2. You'll see your changed files listed
-3. Type a short message describing what you did (e.g., "Review HBV notebook — results verified")
-4. Click the **checkmark** button to commit
-5. Click **Sync Changes** to push to GitHub
-
-**In the terminal (backup):**
-
-```powershell
-git add .
-git commit -m "Review HBV notebook — results verified"
-git push
-```
-
-### 5. Approve it
-
-When your review is done, go back to the issue on GitHub and **comment `/approve`**.
-
-What happens automatically:
-- The label changes to `complete`
-- The files move to `reviews/completed/`
-- If email is set up, the maintainer gets a notification with a zip of the package
-- The issue closes
-
-**You're done!**
+Then open your copy of the notebook:
+**Do not open or edit the original notebook.** Your copy is the one ending in `_rvd.ipynb` inside the `review-copy/` folder.
 
 ---
 
-## Other Useful Things
+### 4. Do your review
 
-### Giving something back to the queue
+- Re-run the notebook
+- Compare the results against the manuscript PDF
+- For each cell either agree or change
 
-If you claimed something but can't finish it, comment `/release` on the issue. It moves the files back to `awaiting-review-2/` and unassigns you.
+**If you agree — do nothing.** Leave the cell exactly as it is.
 
-### Adding comments and tags along the way
+**If you change something — add a `#CHANGED:` comment explaining why.**
 
-Between `/checkout` and `/approve`, you can add as many comments on the issue as you want — questions, notes, tags, whatever helps. None of that triggers any automation. Only `/checkout`, `/release`, and `/approve` change the state.
+Put it above the line you changed:
 
-### Adding a new manuscript to the queue
+```python
+#CHANGED: paper states gamma = 0.1 not 0.14, curator had a typo
+gamma = 0.1
+```
 
-Just drop the files into `reviews/awaiting-review-2/`, commit, and push. The system automatically creates a tracking issue for each new item.
+Or at the end of the line:
 
+```python
+final_time = 1200.0 #CHANGED: changed from 1.0 to match x-axis of figure 1
+```
+
+**If you want to cite where a value came from — add a `#SOURCE:` comment:**
+
+```python
+#SOURCE: p.5 eq.(3) - recovery rate
+gamma = 0.1
+```
+
+This is optional but strongly encouraged. It means anyone reading the notebook later knows exactly where each number came from without having to ask.
+
+> Write your `#CHANGED:` reasons clearly. Someone reading the report six months from now should understand why you made the change without asking anyone.
+
+---
+
+### 5. Save and push your work
+
+In VS Code open the Source Control panel, type a short commit message, click the checkmark, then click Sync Changes.
+
+Or in the terminal:
+
+```powershell
+git add .
+git commit -m "Review paper-name - changes noted"
+git push
+```
+
+---
+
+### 6. Submit your review
+
+Go back to the issue on GitHub and comment `/approve`.
+
+What happens automatically:
+- The system compares your notebook to the curator's original cell by cell
+- Every individual line you changed is counted
+- A `DIFF_REPORT.md` is generated in the paper folder
+- The curator is notified with a summary of what changed and why
+- The label changes to `curator-review`
+- **The folder does not move to completed yet** — the curator reviews first
+
+---
+
+### 7. Wait for the curator
+
+The curator reads the diff report and either:
+
+**Agrees** — they comment `/complete` and the issue closes automatically.
+
+**Disputes** — they comment on the issue explaining why they disagree. You update your notebook and comment `/approve` again. A new diff report is generated. This continues until the curator is satisfied and comments `/complete`.
+
+---
+
+## For curators — after your paper is reviewed
+
+When a reviewer comments `/approve` you will be tagged in a comment on the issue. The comment will show:
+
+- How many lines were changed
+- What each line was changed from and to
+- The reason the reviewer gave for each change
+- A link to the full `DIFF_REPORT.md`
 1. In VS Code, add your folder (or file) inside `reviews/awaiting-review-2/`
 2. Commit and push
 3. A GitHub issue labeled `awaiting-review-2` is created automatically — no manual issue needed
 
-You can also create an issue by hand from the **Issues** tab → **New issue** → **"Add manuscript to review queue"** template, but it's not required.
+You have two options:
 
-### Review folder structure
+**You agree with the changes — comment `/complete`**
 
 Each review folder should contain:
 - One `.ipynb` notebook file
@@ -148,10 +185,63 @@ Review metadata and artifacts (such as `metadata.yml`, `original/`, `review-copy
 
 ---
 
-## Commands Reference
+## Notebook conventions
 
-| Command | When to use it | What happens |
+| Convention | Who uses it | What it means |
 |---|---|---|
-| `/checkout` | You want to start reviewing something | Assigns you, moves files to `in-progress`, sets `review-2-active` |
-| `/approve` | You're done with your review | Marks complete, triggers finalization |
-| `/release` | You need to hand it back | Moves files back to `awaiting-review-2`, unassigns you |
+| `#SOURCE: p.X eq.(Y)` | Curator and reviewer | Where this value came from in the paper |
+| `#CHANGED: reason` | Reviewer only | Why this line was changed from the original |
+| `#DISPUTE: reason` | Curator only | Why they disagree with the reviewer's change |
+
+All three work with or without a space after `#`. Capitalization does not matter.
+
+**Example of a disputed change:**
+
+Reviewer writes:
+```python
+#CHANGED: paper states gamma = 0.1 not 0.14
+gamma = 0.1
+```
+
+Curator disputes it by opening the reviewer notebook and adding:
+```python
+#DISPUTE: 0.14 is correct, see supplementary table S2 p.12
+#CHANGED: paper states gamma = 0.1 not 0.14
+gamma = 0.1
+```
+
+Reviewer sees the dispute, checks p.12, and either reverts their change or adds more evidence with another `#CHANGED:` comment. They then comment `/approve` again to regenerate the diff report.
+
+---
+## Commands reference
+
+| Command | Who can use it | When | What happens |
+|---|---|---|---|
+| `/checkout` | Any reviewer | Issue is `awaiting-review-2` | Assigns you, moves files to in-progress, creates your notebook copy |
+| `/approve` | Assigned reviewer | Issue is `review-2-active` or `disputed` | Generates diff report, notifies curator, sets curator-review |
+| `/dispute reason` | Curator only | Issue is `curator-review` | Records dispute in curator_notes.md, notifies reviewer, sets disputed |
+| `/complete` | Curator only | Issue is `curator-review` | Moves to completed, closes issue |
+| `/release` | Assigned reviewer | Issue is `review-2-active` | Returns files to awaiting-review-2, unassigns you |
+
+> `/dispute` requires a reason. Example: `/dispute gamma should be 0.14 not 0.1 — see supplementary table S2 p.12`
+---
+
+## If something goes wrong
+
+**The workflow failed** — go to the Actions tab on GitHub and click the failed run to see what the error was. Post it as a comment on the issue.
+
+**You edited the wrong notebook** — comment `/release` to return the item to the queue, then `/checkout` again. Your copy will be recreated.
+
+**The diff report is missing** — run it manually in your terminal:
+
+```powershell
+python scripts/generate_diff_report.py "reviews/in-progress/paper-name"
+```
+
+Then push the result:
+
+```powershell
+git add .
+git commit -m "manual: generate diff report for paper-name"
+git push
+```

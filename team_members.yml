@@ -1,0 +1,8 @@
+# Map notebook curator names to GitHub usernames
+# Add a new line for each team member
+# Format: "Full Name as written in notebook": github-username (name must be consistent in every notebook)
+
+members:
+  "Elizabeth Osborn": "Lizo-RoadTown"
+  "Jamaal Porchia": "Jampip"
+  "Louise Marie Maganto": "lmmaganto"

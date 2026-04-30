@@ -1,35 +1,52 @@
 # SDE Review Queue
 
-A simple system for coordinating second reviews of research manuscripts and Jupyter notebooks. Built on GitHub — no extra software needed.
+A system for coordinating second reviews of research manuscripts and Jupyter notebooks. Built on GitHub — no extra software needed.
 
-## How It Works
+The goal is reproducibility and transparency. Every decision made during a review is recorded automatically so nobody has to ask anyone what happened or why.
 
-Each manuscript that needs a second review is tracked as a **GitHub issue**. Reviewers claim issues, do their review, and mark them done — all through comments on the issue.
+---
 
+## How it works
+
+Each manuscript that needs a second review is tracked as a GitHub issue. Reviewers browse the queue, claim a paper, do their review, and submit — all through comments on the issue. The system handles the rest automatically.
+
+```mermaid
+flowchart LR
+    A[awaiting-review-2] -->|/checkout| B[review-2-active]
+    B -->|/approve| C[curator-review]
+    C -->|/complete| D[complete]
+    C -->|/dispute| E[disputed]
+    E -->|/approve again| C
+    B -->|/release| A
 ```
-awaiting-review-2  →  review-2-active  →  complete
-       │                     │                 │
-  Needs a reviewer     Someone's on it    All done
-```
 
-**That's the whole process.** Three stages, two commands.
+---
 
-## The Two Commands You Need
+## What the system does automatically
 
-| Command | What it does |
-|---|---|
-| `/checkout` | Claim a review — moves the files to `in-progress` and assigns you |
-| `/approve` | Finish a review — marks it complete and triggers delivery |
+When you `/checkout` a paper:
+- Files move from `awaiting-review-2` to `in-progress`
+- A copy of the curator's notebook is created for you to work in
+- You are assigned to the issue
 
-There's also `/release` if you need to give something back to the queue.
+When you `/approve`:
+- Both notebooks are compared cell by cell
+- Every line you changed is counted
+- A `DIFF_REPORT.md` is generated showing what changed and why
+- The curator is notified with a summary
+- Label changes to `curator-review`
 
-## Quick Start
+When the curator `/dispute`s:
+- Their reason is recorded in `curator_notes.md`
+- The reviewer is notified
+- Label changes to `disputed`
+- Reviewer updates their notebook and `/approve`s again
 
-1. **New here?** Start with the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md) to get your computer ready
-2. **Ready to review?** Follow the [Reviewer Guide](CONTRIBUTING.md) for step-by-step instructions
-3. **Need the big picture?** See [How Reviewers Use This System](docs/USAGE.md)
-4. **Maintainer?** See [Setup](docs/SETUP.md) for one-time configuration
+When the curator `/complete`s:
+- Files move to `completed`
+- Issue closes
 
+---
 ## Important: Codespaces-Only Devcontainer
 
 This repository includes a devcontainer that is intentionally restricted to GitHub Codespaces.
@@ -41,19 +58,58 @@ If you accidentally choose it locally, container startup will fail by design.
 
 ## Where Files Live
 
-```
-reviews/
-├── awaiting-review-2/   ← Items waiting for a second reviewer
-├── in-progress/         ← Items someone is actively reviewing
-└── completed/           ← Finished reviews
-```
+## Commands
 
-When you `/checkout` an item, the system moves its files from `awaiting-review-2/` into `in-progress/` for you. When you `/approve`, the system moves them to `completed/`.
+| Command | Who | What happens |
+|---|---|---|
+| `/checkout` | Any reviewer | Claims the paper, creates your notebook copy |
+| `/approve` | Assigned reviewer | Generates diff report, notifies curator |
+| `/dispute reason` | Curator only | Records dispute, notifies reviewer |
+| `/complete` | Curator only | Finalizes review, closes issue |
+| `/release` | Assigned reviewer | Returns paper to the queue |
 
-## Adding New Items
+---
 
-Drop a notebook file or folder into `reviews/awaiting-review-2/`, commit, and push. The system automatically creates a tracking issue — no manual issue creation needed.
+## Notebook conventions
 
-## Why GitHub?
+Two comments your team uses while working in notebooks:
 
-GitHub already handles everything this system needs — file storage, change tracking, user accounts, automation, and notifications. No database, no extra server, no new accounts to create.
+| Convention | Who | What it means |
+|---|---|---|
+| `#SOURCE: p.X eq.(Y)` | Curator and reviewer | Where this value came from in the paper |
+| `#CHANGED: reason` | Reviewer | Why this line was changed |
+| `#DISPUTE: reason` | Curator | Why they disagree with the change |
+
+---
+## Where files live
+
+Each paper moves through three folders as it progresses:
+
+| Folder | Meaning |
+|---|---|
+| `reviews/awaiting-review-2/` | Needs a second reviewer |
+| `reviews/in-progress/` | Someone is actively reviewing |
+| `reviews/completed/` | Both reviews done, diff report committed |
+
+Each paper folder contains:
+
+| File | What it is |
+|---|---|
+| `original/` | Curator's notebook — never edited |
+| `review-copy/` | Reviewer's copy — edited during review |
+| `review_metadata.yml` | Tracks who reviewed, timestamps |
+| `DIFF_REPORT.md` | Auto-generated on /approve |
+| `curator_notes.md` | Created if curator uses /dispute |
+---
+
+## Getting started
+
+1. **New here?** Start with the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md)
+2. **Ready to review?** Read the [Reviewer Guide](CONTRIBUTING.md)
+3. **Adding a paper?** Drop the folder into `reviews/awaiting-review-2/` and push — an issue is created automatically
+
+---
+
+## Team members
+
+Team member names and GitHub usernames are mapped in `team_members.yml`. If your name is not in that file the system cannot notify you or restrict commands correctly — contact the repo maintainer to be added.

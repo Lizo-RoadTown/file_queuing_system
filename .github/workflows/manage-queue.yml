@@ -10,11 +10,19 @@ permissions:
 
 jobs:
   handle-command:
-    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve'))
+    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve') || startsWith(github.event.comment.body, '/complete') || startsWith(github.event.comment.body, '/dispute'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
 
       - name: Verify commenter is an authorized reviewer
         id: auth
@@ -22,14 +30,6 @@ jobs:
         with:
           script: |
             const commenter = context.payload.comment.user.login;
-            // TODO: switch to team check after transfer to org.
-            // Replace the block below with:
-            //   const team = process.env.REVIEWER_TEAM;     // e.g. "sde-reviewers"
-            //   const org  = context.repo.owner;
-            //   const { data } = await github.rest.teams.getMembershipForUserInOrg({
-            //     org, team_slug: team, username: commenter,
-            //   });
-            //   if (data.state !== 'active') throw new Error('not a team member');
             try {
               await github.rest.repos.checkCollaborator({
                 owner: context.repo.owner,
@@ -39,7 +39,7 @@ jobs:
             } catch (e) {
               await github.rest.issues.createComment({
                 ...context.repo, issue_number: context.issue.number,
-                body: `@${commenter} sorry — only authorized reviewers can run slash commands here.`,
+                body: '@' + commenter + ' sorry - only authorized reviewers can run slash commands here.',
               });
               core.setFailed('unauthorized');
               return;
@@ -59,12 +59,14 @@ jobs:
             const commenter = process.env.COMMENTER;
             const body = context.payload.comment.body.trim();
             const cmd  = body.split(/\s+/)[0];
+            const reason = body.replace(cmd, '').trim();
             const issue = context.payload.issue;
             const labels = issue.labels.map(l => l.name);
 
             const reply = (msg) => github.rest.issues.createComment({
               ...context.repo, issue_number: issue.number, body: msg,
             });
+
             const setLabels = async (toAdd, toRemove) => {
               for (const l of toRemove) {
                 try { await github.rest.issues.removeLabel({
@@ -81,10 +83,10 @@ jobs:
             const updateIssuePathMarkers = async (oldPath, newPath) => {
               let newBody = issue.body || '';
               if ((issue.body || '').match(/<!--\s*folder:\s*(.+?)\s*-->/)) {
-                newBody = newBody.replace(/<!--\s*folder:\s*.+?\s*-->/, `<!-- folder: ${newPath} -->`);
+                newBody = newBody.replace(/<!--\s*folder:\s*.+?\s*-->/, '<!-- folder: ' + newPath + ' -->');
               }
               if ((issue.body || '').match(/<!--\s*path:\s*(.+?)\s*-->/)) {
-                newBody = newBody.replace(/<!--\s*path:\s*.+?\s*-->/, `<!-- path: ${newPath} -->`);
+                newBody = newBody.replace(/<!--\s*path:\s*.+?\s*-->/, '<!-- path: ' + newPath + ' -->');
               }
               if (newBody !== (issue.body || '')) {
                 await github.rest.issues.update({
@@ -95,24 +97,28 @@ jobs:
               }
             };
 
-            const moveTrackedItemToStage = async (sourcePath, stageDir) => {
-              const itemName = path.basename(sourcePath);
-              const destPath = `reviews/${stageDir}/${itemName}`;
-              if (sourcePath === destPath) return { moved: false, path: sourcePath };
-              if (!sourcePath.startsWith('reviews/')) {
-                throw new Error(`Tracked path is outside reviews/: ${sourcePath}`);
-              }
-              if (fs.existsSync(destPath)) {
-                throw new Error(`Destination already exists: ${destPath}`);
-              }
-              fs.mkdirSync(`reviews/${stageDir}`, { recursive: true });
+            const gitConfig = () => {
               execFileSync('git', ['config', 'user.name', 'github-actions[bot]']);
               execFileSync('git', ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']);
+            };
+
+            const moveTrackedItemToStage = async (sourcePath, stageDir) => {
+              const itemName = path.basename(sourcePath);
+              const destPath = 'reviews/' + stageDir + '/' + itemName;
+              if (sourcePath === destPath) return { moved: false, path: sourcePath };
+              if (!sourcePath.startsWith('reviews/')) {
+                throw new Error('Tracked path is outside reviews/: ' + sourcePath);
+              }
+              if (fs.existsSync(destPath)) {
+                throw new Error('Destination already exists: ' + destPath);
+              }
+              fs.mkdirSync('reviews/' + stageDir, { recursive: true });
+              gitConfig();
               execFileSync('git', ['mv', sourcePath, destPath]);
               execFileSync('git', ['add', '-A']);
               const pending = execFileSync('git', ['status', '--short']).toString().trim();
               if (pending) {
-                execFileSync('git', ['commit', '-m', `Queue move: ${itemName} -> reviews/${stageDir} (refs #${issue.number})`]);
+                execFileSync('git', ['commit', '-m', 'Queue move: ' + itemName + ' -> reviews/' + stageDir + ' (refs #' + issue.number + ')']);
                 execFileSync('git', ['push']);
               }
               await updateIssuePathMarkers(sourcePath, destPath);
@@ -247,7 +253,6 @@ jobs:
             const isFolderItem = !!trackedStat && trackedStat.isDirectory();
             const isFileItem = !!trackedStat && trackedStat.isFile();
 
-            // Read reviewer_1 from metadata.yml if present.
             let reviewer1 = null;
             if (folder && fs.existsSync(path.join(folder, 'metadata.yml'))) {
               const yml = fs.readFileSync(path.join(folder, 'metadata.yml'), 'utf8');
@@ -256,22 +261,22 @@ jobs:
             }
 
             const reviewerLine = reviewer1
-              ? `The recorded first reviewer is @${reviewer1}.`
+              ? 'The recorded first reviewer is @' + reviewer1 + '.'
               : 'No first reviewer is recorded for this item, so the workflow cannot enforce reviewer separation automatically.';
 
             // ---------- /checkout ----------
             if (cmd === '/checkout') {
               if (labels.includes('awaiting-review-2')) {
                 if (!trackedPath) {
-                  await reply(`Could not determine which repository item this issue tracks (missing \`<!-- folder: ... -->\` or \`<!-- path: ... -->\` marker). Aborting checkout — contact the maintainer.`);
+                  await reply('Could not determine which repository item this issue tracks (missing `<!-- folder: ... -->` or `<!-- path: ... -->` marker). Aborting checkout - contact the maintainer.');
                   return;
                 }
                 if (!hasTrackedPath) {
-                  await reply(`The tracked item for this issue was not found at \`${trackedPath}\`. Aborting checkout — contact the maintainer.`);
+                  await reply('The tracked item for this issue was not found at `' + trackedPath + '`. Aborting checkout - contact the maintainer.');
                   return;
                 }
                 if (reviewer1 && reviewer1 === commenter) {
-                  await reply(`@${commenter} you were the **first reviewer** for this item — a different reviewer must perform the second review.`);
+                  await reply('@' + commenter + ' you were the **first reviewer** for this item - a different reviewer must perform the second review.');
                   return;
                 }
                 await github.rest.issues.addAssignees({
@@ -282,7 +287,7 @@ jobs:
                   const moved = await moveTrackedItemToStage(trackedPath, 'in-progress');
                   activePath = moved.path;
                 } catch (err) {
-                  await reply(`Could not move the tracked item into \`reviews/in-progress/\`: ${err.message}`);
+                  await reply('Could not move the tracked item into `reviews/in-progress/`: ' + err.message);
                   return;
                 }
                 if (isFolderItem) {
@@ -307,26 +312,29 @@ jobs:
                 }
                 await setLabels(['review-2-active'], ['awaiting-review-2', 'complete']);
                 const itemSummary = isFolderItem
-                  ? `This issue is linked to the review folder \`${activePath}\`.`
+                  ? 'This issue is linked to the review folder `' + activePath + '`.'
                   : isFileItem
-                    ? `This issue is linked to the standalone review file \`${activePath}\`.`
-                    : `This issue is linked to \`${activePath}\`.`;
-                await reply(`@${commenter} checked out for **second review**. The tracked item was moved to \`reviews/in-progress/\` and the issue is now \`review-2-active\`. ${itemSummary} ${reviewerLine} When done, comment \`/approve\` to move it to completed, or \`/release\` to return it to \`awaiting-review-2\`.`);
+                    ? 'This issue is linked to the standalone review file `' + activePath + '`.'
+                    : 'This issue is linked to `' + activePath + '`.';
+                const notebookMsg = isFolderItem
+                  ? '\n\nYour copy is ready at `' + activePath + '/r2_notebook.ipynb`. Open this file - do not edit the original. Add `#SOURCE: p.X` where you found each value, and `#CHANGED: reason` above anything you change.'
+                  : '';
+                await reply('@' + commenter + ' checked out for **second review**. The tracked item was moved to `reviews/in-progress/` and the issue is now `review-2-active`. ' + itemSummary + ' ' + reviewerLine + notebookMsg + ' When done, comment `/approve` to move it to completed, or `/release` to return it to `awaiting-review-2`.');
                 return;
               }
-              await reply(`This item is not currently checkable-out (state: \`${labels.join(', ')}\`).`);
+              await reply('This item is not currently checkable-out (state: `' + labels.join(', ') + '`).');
               return;
             }
 
             // ---------- /release ----------
             if (cmd === '/release') {
               if (!labels.includes('review-2-active')) {
-                await reply(`\`/release\` is only valid during an active review (current: \`${labels.join(', ')}\`).`);
+                await reply('`/release` is only valid during an active review (current: `' + labels.join(', ') + '`).');
                 return;
               }
               const assignees = (issue.assignees || []).map(a => a.login);
               if (!assignees.includes(commenter)) {
-                await reply(`@${commenter} you're not the current reviewer on this item.`);
+                await reply('@' + commenter + ' you are not the current reviewer on this item.');
                 return;
               }
               await github.rest.issues.removeAssignees({
@@ -336,28 +344,92 @@ jobs:
                 try {
                   await moveTrackedItemToStage(trackedPath, 'awaiting-review-2');
                 } catch (err) {
-                  await reply(`Could not move the tracked item back to \`reviews/awaiting-review-2/\`: ${err.message}`);
+                  await reply('Could not move the tracked item back to `reviews/awaiting-review-2/`: ' + err.message);
                   return;
                 }
               }
               await setLabels(['awaiting-review-2'], ['review-2-active']);
-              await reply(`Released by @${commenter}. The item is back in \`awaiting-review-2\`.`);
+              await reply('Released by @' + commenter + '. The item is back in `awaiting-review-2`.');
               return;
             }
 
             // ---------- /approve ----------
             if (cmd === '/approve') {
-              if (!labels.includes('review-2-active')) {
-                await reply(`\`/approve\` is only valid during second review (current: \`${labels.join(', ')}\`).`);
+              if (!labels.includes('review-2-active') && !labels.includes('disputed')) {
+                await reply('`/approve` is only valid during an active or disputed review (current: `' + labels.join(', ') + '`).');
                 return;
               }
               const assignees = (issue.assignees || []).map(a => a.login);
               if (!assignees.includes(commenter)) {
-                await reply(`@${commenter} only the assigned second reviewer can approve.`);
+                await reply('@' + commenter + ' only the assigned second reviewer can approve.');
                 return;
               }
               if (reviewer1 && reviewer1 === commenter) {
-                await reply(`@${commenter} integrity check failed: you are recorded as the first reviewer.`);
+                await reply('@' + commenter + ' integrity check failed: you are recorded as the first reviewer.');
+                return;
+              }
+
+              let diffSummary = '';
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                const metaPath = path.join(trackedPath, 'review_metadata.yml');
+                if (fs.existsSync(metaPath)) {
+                  try {
+                    let meta = fs.readFileSync(metaPath, 'utf8');
+                    meta = meta.replace(/^approval_timestamp:.*$/m, 'approval_timestamp: "' + new Date().toISOString() + '"');
+                    meta = meta.replace(/^approved_by:.*$/m, 'approved_by: "' + commenter + '"');
+                    fs.writeFileSync(metaPath, meta);
+                    const result = execFileSync('python', [
+                      'scripts/generate_diff_report.py',
+                      trackedPath
+                    ]).toString().trim();
+                    console.log('Diff result:', result);
+                    const curatorMatch = result.match(/curator_github:(.+)/);
+                    if (curatorMatch) curatorGithub = curatorMatch[1].trim();
+                    const reportPath = path.join(trackedPath, 'DIFF_REPORT.md');
+                    if (fs.existsSync(reportPath)) {
+                      const report = fs.readFileSync(reportPath, 'utf8');
+                      const notifMatch = report.match(/## Curator notification\n([\s\S]*?)$/);
+                      if (notifMatch) diffSummary = notifMatch[1].trim();
+                    }
+                    gitConfig();
+                    execFileSync('git', ['add', trackedPath]);
+                    execFileSync('git', ['commit', '-m', 'Diff report: ' + path.basename(trackedPath) + ' (refs #' + issue.number + ')']);
+                    execFileSync('git', ['push']);
+                  } catch (err) {
+                    console.log('Diff report error:', err.message);
+                    diffSummary = 'Diff report could not be generated - run manually with `python scripts/generate_diff_report.py ' + trackedPath + '`';
+                  }
+                }
+              }
+
+              await setLabels(['curator-review'], ['review-2-active', 'disputed']);
+              const approvalMsg = diffSummary
+                ? '@' + commenter + ' submitted their review.\n\n---\n\n' + diffSummary + '\n\nFull report: `' + trackedPath + '/DIFF_REPORT.md`'
+                : '@' + commenter + ' submitted their review. No diff report generated.';
+              await reply(approvalMsg);
+              return;
+            }
+
+            // ---------- /dispute ----------
+            if (cmd === '/dispute') {
+              if (!labels.includes('curator-review')) {
+                await reply('`/dispute` is only valid after a reviewer has submitted their review (current: `' + labels.join(', ') + '`).');
+                return;
+              }
+
+              // Verify commenter is the curator
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                curatorGithub = resolveCurator(trackedPath);
+              }
+              if (curatorGithub && commenter !== curatorGithub) {
+                await reply('@' + commenter + ' only the curator (@' + curatorGithub + ') can dispute this review.');
+                return;
+              }
+
+              if (!reason) {
+                await reply('Please provide a reason for your dispute. Usage: `/dispute your reason here`');
                 return;
               }
               const activePath = trackedPath;
@@ -379,5 +451,55 @@ jobs:
               await setLabels(['complete'], ['review-2-active']);
               await reply(`Approved by @${commenter}. The review is now marked complete. If this issue is linked to a tracked review folder or file and maintainer email settings are configured, the completion workflow will attempt finalization.`);
               // notify-on-complete.yml takes over from here on the 'complete' label.
+              return;
+            }
+
+            // ---------- /complete ----------
+            if (cmd === '/complete') {
+              if (!labels.includes('curator-review')) {
+                await reply('`/complete` is only valid after a reviewer has submitted their review (current: `' + labels.join(', ') + '`).');
+                return;
+              }
+
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                curatorGithub = resolveCurator(trackedPath);
+              }
+              if (curatorGithub && commenter !== curatorGithub) {
+                await reply('@' + commenter + ' only the curator (@' + curatorGithub + ') can mark this complete.');
+                return;
+              }
+
+              let completedPath = trackedPath;
+              if (trackedPath && hasTrackedPath) {
+                try {
+                  const moved = await moveTrackedItemToStage(trackedPath, 'completed');
+                  completedPath = moved.path;
+                } catch (err) {
+                  await reply('Could not move to completed: ' + err.message);
+                  return;
+                }
+              }
+
+              if (completedPath && fs.statSync(completedPath).isDirectory()) {
+                const metaPath = path.join(completedPath, 'review_metadata.yml');
+                if (fs.existsSync(metaPath)) {
+                  let meta = fs.readFileSync(metaPath, 'utf8');
+                  meta = meta.replace(/^status:.*$/m, 'status: "completed"');
+                  fs.writeFileSync(metaPath, meta);
+                  gitConfig();
+                  execFileSync('git', ['add', metaPath]);
+                  execFileSync('git', ['commit', '-m', 'Complete: ' + path.basename(completedPath) + ' approved by @' + commenter + ' (refs #' + issue.number + ')']);
+                  execFileSync('git', ['push']);
+                }
+              }
+
+              await setLabels(['complete'], ['curator-review', 'disputed']);
+              await github.rest.issues.update({
+                ...context.repo,
+                issue_number: issue.number,
+                state: 'closed'
+              });
+              await reply('Completed by @' + commenter + '. The review is finalized and moved to `reviews/completed/`. Issue closed.');
               return;
             }
