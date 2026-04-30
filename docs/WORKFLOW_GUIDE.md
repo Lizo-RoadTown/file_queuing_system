@@ -20,6 +20,8 @@ Here's the pattern every time you sit down to review:
 4. Push (send it to GitHub)
 ```
 
+Important for local VS Code users: if prompted to "Reopen in Container" for this repository, choose No and continue locally. The devcontainer is for GitHub Codespaces only.
+
 ---
 
 ## Part 1: Getting the Latest Files
@@ -214,3 +216,83 @@ git push
 | `git commit -m "msg"` | Type message + click **âœ“** |
 | `git push` | Click **Sync Changes** |
 | `git status` | Look at the Source Control panel |
+---
+
+## Part 5: Contributing from a Forked Repository
+
+If you are working from a **fork** of the main repository (your own copy on GitHub rather than a direct clone), follow this walkthrough to submit your changes.
+
+### Step 1: One-time setup — add the upstream remote
+
+You only need to do this once. "Upstream" means the original repository, not your fork.
+
+```bash
+git remote add upstream https://github.com/Lizo-RoadTown/file_queuing_system.git
+```
+
+To check it worked:
+
+```bash
+git remote -v
+```
+
+You should see both `origin` (your fork) and `upstream` (the main repo) listed.
+
+### Step 2: Bring your branch up to date with main
+
+Before submitting, make sure your branch includes any recent changes from the main repo.
+
+```bash
+git fetch upstream
+git checkout your-branch-name
+git merge upstream/main --no-edit
+```
+
+The `--no-edit` flag accepts the default merge commit message automatically. Without it, Git may open a text editor (see below if that happens).
+
+### Step 3: Push your branch to your fork
+
+```bash
+git push origin your-branch-name
+```
+
+### Step 4: Open a pull request
+
+**Option A — GitHub CLI (if you have `gh` installed):**
+
+```bash
+gh pr create \
+  --repo Lizo-RoadTown/file_queuing_system \
+  --head your-github-username:your-branch-name \
+  --base main \
+  --title "Short description of your changes" \
+  --body "What this PR does"
+```
+
+To check if `gh` is installed: `gh --version`
+
+**Option B — in the browser:**
+
+After pushing, go to your fork on GitHub. You will see a yellow banner saying **"Compare & pull request"** — click it, fill in the title and description, and click **Open pull request**.
+
+---
+
+### Dealing with the terminal text editor (nano)
+
+If you run `git merge` without `--no-edit`, Git may open a text editor called **nano** so you can write a commit message. It looks like this:
+
+```
+  GNU nano ...
+  Merge branch 'main' of https://github.com/...
+  # Please enter the commit message...
+```
+
+The default message is fine — you do not need to type anything. Exit nano like this:
+
+| Key | What it does |
+|---|---|
+| `Ctrl+O` | Save the file (nano shows the filename at the bottom) |
+| `Enter` | Confirm the filename |
+| `Ctrl+X` | Exit nano |
+
+> **Do not press `Ctrl+C`** — that cancels without saving and will abort the merge commit.

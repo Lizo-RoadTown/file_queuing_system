@@ -47,6 +47,16 @@ When the curator `/complete`s:
 - Issue closes
 
 ---
+## Important: Codespaces-Only Devcontainer
+
+This repository includes a devcontainer that is intentionally restricted to GitHub Codespaces.
+
+- In GitHub Codespaces: the container starts normally.
+- In local VS Code on your computer: do not choose "Reopen in Container" for this repository.
+
+If you accidentally choose it locally, container startup will fail by design.
+
+## Where Files Live
 
 ## Commands
 

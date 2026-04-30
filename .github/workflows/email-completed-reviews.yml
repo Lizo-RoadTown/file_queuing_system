@@ -1,0 +1,84 @@
+name: Email Completed Reviews (One Per Package)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  email-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Zip and email each completed review
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_LOGIN: ${{ secrets.SMTP_LOGIN }}
+          SMTP_KEY: ${{ secrets.SMTP_KEY }}
+          FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
+          NOTIFY_TO: ${{ secrets.NOTIFY_TO }}
+        run: |
+          python3 << 'EOF'
+          import os, smtplib, zipfile
+          from email.message import EmailMessage
+          from email.utils import formataddr
+
+          smtp_server = os.environ['SMTP_SERVER']
+          smtp_port   = int(os.environ['SMTP_PORT'])
+          login       = os.environ['SMTP_LOGIN']
+          password    = os.environ['SMTP_KEY']
+          from_email  = os.environ['FROM_EMAIL']
+          to_email    = os.environ['NOTIFY_TO']
+
+          completed_dir = 'reviews/completed'
+          folders = sorted(os.listdir(completed_dir))
+
+          sent = []
+          for folder_name in folders:
+              folder_path = os.path.join(completed_dir, folder_name)
+              if not os.path.isdir(folder_path):
+                  continue
+
+              # Zip the folder
+              zip_path = f'/tmp/{folder_name}.zip'
+              with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                  for root, dirs, files in os.walk(folder_path):
+                      for file in files:
+                          file_path = os.path.join(root, file)
+                          arcname = os.path.relpath(file_path, completed_dir)
+                          zf.write(file_path, arcname)
+
+              # Compose email
+              msg = EmailMessage()
+              msg['Subject'] = f'[SDE Review Complete] {folder_name}'
+              msg['From']    = formataddr(('SDE Review Queue', from_email))
+              msg['To']      = to_email
+              msg['Cc']      = from_email
+              msg.set_content(
+                  f"A review package has been finalized.\n\n"
+                  f"Manuscript: {folder_name}\n"
+                  f"Location:   reviews/completed/{folder_name}\n\n"
+                  f"The complete review package is attached as a zip file."
+              )
+
+              with open(zip_path, 'rb') as f:
+                  msg.add_attachment(
+                      f.read(),
+                      maintype='application',
+                      subtype='zip',
+                      filename=f'{folder_name}.zip'
+                  )
+
+              with smtplib.SMTP(smtp_server, smtp_port) as s:
+                  s.starttls()
+                  s.login(login, password)
+                  s.send_message(msg)
+
+              sent.append(folder_name)
+              print(f'✓ Sent: {folder_name}')
+
+          print(f'\nDone — {len(sent)} email(s) sent.')
+          EOF

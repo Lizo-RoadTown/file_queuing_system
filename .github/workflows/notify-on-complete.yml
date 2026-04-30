@@ -104,10 +104,11 @@ jobs:
         with:
           server_address: ${{ secrets.SMTP_SERVER }}
           server_port: ${{ secrets.SMTP_PORT }}
-          username: ${{ secrets.SMTP_USER }}
-          password: ${{ secrets.SMTP_PASS }}
-          from: SDE Review Queue <${{ secrets.SMTP_USER }}>
+          username: ${{ secrets.SMTP_LOGIN }}
+          password: ${{ secrets.SMTP_KEY }}
+          from: SDE Review Queue <${{ secrets.FROM_EMAIL }}>
           to: ${{ secrets.NOTIFY_TO }}
+          cc: ${{ secrets.FROM_EMAIL }}
           subject: "[SDE Review Complete] ${{ steps.resolve.outputs.item_name }}"
           body: |
             A review has been finalized.

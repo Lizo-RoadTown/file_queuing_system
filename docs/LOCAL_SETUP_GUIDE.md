@@ -266,6 +266,16 @@ python -m ipykernel install --user --name review-queue --display-name "Review Qu
 
 Now let's open the repository in VS Code for editing.
 
+### Important: Do Not Reopen This Repo in a Container Locally
+
+This project's devcontainer is for GitHub Codespaces only.
+
+- If you are using local VS Code on your own computer, stay in your normal local window.
+- If VS Code prompts you to **Reopen in Container**, click **No** or close the prompt.
+- Local work for this repository should use your local conda environment from Step 4.
+
+This is expected behavior and prevents accidental container boot on local machines.
+
 ### Method 1: From PowerShell (Easiest)
 
 If you're still in PowerShell in the repository folder:
@@ -527,6 +537,17 @@ Done! Your work is saved both locally and on GitHub.
 2. Type: `Python: Select Interpreter`
 3. Choose `review-queue` or `Review Queue Python`
 4. Reload the VS Code window: `Ctrl+Shift+P` → `Developer: Reload Window`
+
+### VS Code Keeps Asking to Reopen in Container
+
+**Cause:** The repository includes a devcontainer for Codespaces users.
+
+**What to do locally:**
+1. Click **No** when prompted to reopen in container.
+2. Continue in the current local VS Code window.
+3. Use your local Python/conda environment (`review-queue`) from Step 4.
+
+If you accidentally reopen in container locally, it will fail intentionally. Reopen the folder normally and continue.
 
 ### Git Says "Your Branch is Behind"
 

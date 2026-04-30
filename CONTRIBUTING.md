@@ -168,18 +168,20 @@ When a reviewer comments `/approve` you will be tagged in a comment on the issue
 - What each line was changed from and to
 - The reason the reviewer gave for each change
 - A link to the full `DIFF_REPORT.md`
+1. In VS Code, add your folder (or file) inside `reviews/awaiting-review-2/`
+2. Commit and push
+3. A GitHub issue labeled `awaiting-review-2` is created automatically — no manual issue needed
 
 You have two options:
 
 **You agree with the changes — comment `/complete`**
 
-This moves the folder to `reviews/completed/` and closes the issue. Only you as the curator can do this.
+Each review folder should contain:
+- One `.ipynb` notebook file
+- One `.pdf` manuscript file
+- (Recommended) At least one image file
 
-**You disagree with a change — comment on the issue**
-
-Explain what you think is wrong. The reviewer will update their notebook and resubmit with `/approve`. You will get a new diff report. When you are satisfied comment `/complete`.
-
-> `/complete` can only be used by the curator of that paper. The system checks this automatically using `team_members.yml`.
+Review metadata and artifacts (such as `metadata.yml`, `original/`, `review-copy/`, and `notes/`) are created automatically during `/checkout`.
 
 ---
 

@@ -8,7 +8,7 @@ on:
       - 'reviews/completed/**'
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -16,6 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Check out the actual head branch so we can commit metadata back to it.
+          # This only works for PRs from the same repo (not forks).
+          ref: ${{ github.head_ref }}
 
       - name: Check submission shape
         uses: actions/github-script@v7
@@ -31,9 +36,39 @@ jobs:
             ).toString().split('\n').filter(Boolean);
 
             const folders = new Set();
+            const looseFiles = [];
             for (const f of changed) {
               const m = f.match(/^reviews\/(in-progress|awaiting-review-2|completed)\/([^\/]+)\//);
-              if (m) folders.add(`reviews/${m[1]}/${m[2]}`);
+              if (m) {
+                folders.add(`reviews/${m[1]}/${m[2]}`);
+              } else if (/^reviews\/(in-progress|awaiting-review-2|completed)\/[^\/]+$/.test(f)) {
+                looseFiles.push(f);
+              }
+            }
+
+            if (looseFiles.length > 0) {
+              const body = [
+                '### Submission validation failed',
+                '',
+                'The following files were submitted directly to a review stage folder instead of inside a named subfolder:',
+                ...looseFiles.map(f => `- \`${f}\``),
+                '',
+                'Every submission must be placed inside its own named folder, e.g.:',
+                '```',
+                'reviews/awaiting-review-2/MyPaper/',
+                '  MyPaper.ipynb',
+                '  MyPaper.pdf',
+                '```',
+                '',
+                'See `CONTRIBUTING.md` for the required folder shape.',
+              ].join('\n');
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+              core.setFailed('Loose files at review stage root — every submission must be inside its own named folder.');
+              return;
             }
 
             if (folders.size === 0) {
@@ -47,12 +82,10 @@ jobs:
               const files = fs.readdirSync(folder);
               const hasNotebook = files.some(f => f.endsWith('.ipynb'));
               const hasPdf      = files.some(f => f.toLowerCase().endsWith('.pdf'));
-              const hasMeta     = files.includes('metadata.yml');
               const hasImage    = files.some(f => /\.(png|jpe?g|svg)$/i.test(f));
 
               if (!hasNotebook) errors.push(`\`${folder}\` is missing a \`.ipynb\` notebook.`);
               if (!hasPdf)      errors.push(`\`${folder}\` is missing a \`.pdf\` manuscript.`);
-              if (!hasMeta)     errors.push(`\`${folder}\` is missing \`metadata.yml\`.`);
               if (!hasImage)    core.warning(`${folder} has no output image — allowed but discouraged.`);
             }
 
@@ -64,4 +97,51 @@ jobs:
                 body,
               });
               core.setFailed(errors.join('; '));
+              return;
+            }
+
+            // Record reviewer_1 (= PR author) in metadata.yml for new awaiting-review-2 folders.
+            // This only runs for same-repo PRs (forks cannot receive pushes from the bot).
+            const isSameRepo = context.payload.pull_request.head.repo.full_name === context.payload.pull_request.base.repo.full_name;
+            if (!isSameRepo) {
+              core.info('Fork PR — skipping metadata.yml write.');
+              return;
+            }
+
+            const prAuthor = context.payload.pull_request.user.login;
+            let metadataUpdated = false;
+
+            for (const folder of folders) {
+              if (!folder.startsWith('reviews/awaiting-review-2/')) continue;
+              if (!fs.existsSync(folder)) continue;
+
+              const metaPath = path.join(folder, 'metadata.yml');
+              let content = fs.existsSync(metaPath) ? fs.readFileSync(metaPath, 'utf8') : '';
+
+              // Only set reviewer_1 if missing or placeholder.
+              const alreadySet = content.match(/^reviewer_1:\s*(?!\(unknown\)).+$/m);
+              if (alreadySet) continue;
+
+              if (content.match(/^reviewer_1:/m)) {
+                content = content.replace(/^reviewer_1:.*$/m, `reviewer_1: ${prAuthor}`);
+              } else if (content.trim()) {
+                content = content.trimEnd() + `\nreviewer_1: ${prAuthor}\n`;
+              } else {
+                content = `doi: (unknown)\nreviewer_1: ${prAuthor}\n`;
+              }
+
+              fs.writeFileSync(metaPath, content);
+              metadataUpdated = true;
+              core.info(`Wrote reviewer_1: ${prAuthor} to ${metaPath}`);
+            }
+
+            if (metadataUpdated) {
+              execSync('git config user.name "github-actions[bot]"');
+              execSync('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"');
+              execSync('git add -A');
+              const pending = execSync('git status --short').toString().trim();
+              if (pending) {
+                execSync(`git commit -m "Record reviewer_1 (${prAuthor}) in metadata.yml"`);
+                execSync('git push');
+              }
             }
