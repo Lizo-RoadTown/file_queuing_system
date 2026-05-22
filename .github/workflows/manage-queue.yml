@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   handle-command:
-    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve') || startsWith(github.event.comment.body, '/complete') || startsWith(github.event.comment.body, '/dispute'))
+    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve') || startsWith(github.event.comment.body, '/dispute') || startsWith(github.event.comment.body, '/complete') || startsWith(github.event.comment.body, '/reject'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -144,10 +144,11 @@ jobs:
               fs.mkdirSync(path.join(folderPath, 'notes'), { recursive: true });
 
               const originalPath = path.join(folderPath, 'original', notebookName);
-              fs.copyFileSync(notebookPath, originalPath);
+              // Move the notebook directly into original/ — no duplicate ever exists
+              fs.renameSync(notebookPath, originalPath);
 
               const reviewCopyPath = path.join(folderPath, 'review-copy', `${notebookBase}_rvd.ipynb`);
-              fs.copyFileSync(notebookPath, reviewCopyPath);
+              fs.copyFileSync(originalPath, reviewCopyPath);
 
               const notesPath = path.join(folderPath, 'notes', 'review_notes.md');
               const notesTemplate = `# Review Notes
@@ -243,6 +244,14 @@ jobs:
               fs.writeFileSync(metadataPath, content);
             };
 
+            const resolveCurator = (folderPath) => {
+              const metaPath = path.join(folderPath, 'metadata.yml');
+              if (!fs.existsSync(metaPath)) return null;
+              const yml = fs.readFileSync(metaPath, 'utf8');
+              const m = yml.match(/^curator(?:_github)?:\s*(.+?)\s*$/m);
+              return (m && m[1] && m[1] !== 'null') ? m[1] : null;
+            };
+
             // Extract the tracked review item from issue body markers.
             const folderMatch = (issue.body || '').match(/<!--\s*folder:\s*(.+?)\s*-->/);
             const folder = folderMatch ? folderMatch[1] : null;
@@ -317,9 +326,13 @@ jobs:
                     ? 'This issue is linked to the standalone review file `' + activePath + '`.'
                     : 'This issue is linked to `' + activePath + '`.';
                 const notebookMsg = isFolderItem
-                  ? '\n\nYour copy is ready at `' + activePath + '/r2_notebook.ipynb`. Open this file - do not edit the original. Add `#SOURCE: p.X` where you found each value, and `#CHANGED: reason` above anything you change.'
+                  ? '\n\nYour copy is ready at `' + activePath + '/review-copy/`. Open the `_rvd.ipynb` file — do not edit the original. Add `#SOURCE: p.X` where you found each value, and `#CHANGED: reason` above anything you change.'
                   : '';
-                await reply('@' + commenter + ' checked out for **second review**. The tracked item was moved to `reviews/in-progress/` and the issue is now `review-2-active`. ' + itemSummary + ' ' + reviewerLine + notebookMsg + ' When done, comment `/approve` to move it to completed, or `/release` to return it to `awaiting-review-2`.');
+                await reply(
+                  '@' + commenter + ' checked out for **second review**. The tracked item was moved to `reviews/in-progress/` and the issue is now `review-2-active`. ' +
+                  itemSummary + ' ' + reviewerLine + notebookMsg +
+                  '\n\nWhen done:\n- Comment `/approve` if the review is complete and correct — this will move the item straight to `completed/`.\n- Comment `/dispute <reason>` if you disagree with something — this will flag the item for curator review.\n- Comment `/release` to return it to `awaiting-review-2` without a decision.'
+                );
                 return;
               }
               await reply('This item is not currently checkable-out (state: `' + labels.join(', ') + '`).');
@@ -354,9 +367,11 @@ jobs:
             }
 
             // ---------- /approve ----------
+            // Used by Reviewer 2 when the review is complete and correct.
+            // Moves the item straight to completed/ — no curator step needed.
             if (cmd === '/approve') {
-              if (!labels.includes('review-2-active') && !labels.includes('disputed')) {
-                await reply('`/approve` is only valid during an active or disputed review (current: `' + labels.join(', ') + '`).');
+              if (!labels.includes('review-2-active')) {
+                await reply('`/approve` is only valid during an active review (current: `' + labels.join(', ') + '`). If this review is disputed, the curator must use `/complete` or `/reject`.');
                 return;
               }
               const assignees = (issue.assignees || []).map(a => a.login);
@@ -365,141 +380,165 @@ jobs:
                 return;
               }
               if (reviewer1 && reviewer1 === commenter) {
-                await reply('@' + commenter + ' integrity check failed: you are recorded as the first reviewer.');
+                await reply('@' + commenter + ' integrity check failed: you are recorded as the first reviewer and cannot approve.');
                 return;
               }
-
-              let diffSummary = '';
-              let curatorGithub = null;
               if (isFolderItem && trackedPath) {
-                const metaPath = path.join(trackedPath, 'review_metadata.yml');
-                if (fs.existsSync(metaPath)) {
-                  try {
-                    let meta = fs.readFileSync(metaPath, 'utf8');
-                    meta = meta.replace(/^approval_timestamp:.*$/m, 'approval_timestamp: "' + new Date().toISOString() + '"');
-                    meta = meta.replace(/^approved_by:.*$/m, 'approved_by: "' + commenter + '"');
-                    fs.writeFileSync(metaPath, meta);
-                    const result = execFileSync('python', [
-                      'scripts/generate_diff_report.py',
-                      trackedPath
-                    ]).toString().trim();
-                    console.log('Diff result:', result);
-                    const curatorMatch = result.match(/curator_github:(.+)/);
-                    if (curatorMatch) curatorGithub = curatorMatch[1].trim();
-                    const reportPath = path.join(trackedPath, 'DIFF_REPORT.md');
-                    if (fs.existsSync(reportPath)) {
-                      const report = fs.readFileSync(reportPath, 'utf8');
-                      const notifMatch = report.match(/## Curator notification\n([\s\S]*?)$/);
-                      if (notifMatch) diffSummary = notifMatch[1].trim();
-                    }
-                    gitConfig();
-                    execFileSync('git', ['add', trackedPath]);
-                    execFileSync('git', ['commit', '-m', 'Diff report: ' + path.basename(trackedPath) + ' (refs #' + issue.number + ')']);
-                    execFileSync('git', ['push']);
-                  } catch (err) {
-                    console.log('Diff report error:', err.message);
-                    diffSummary = 'Diff report could not be generated - run manually with `python scripts/generate_diff_report.py ' + trackedPath + '`';
-                  }
-                }
-              }
-
-              await setLabels(['curator-review'], ['review-2-active', 'disputed']);
-              const approvalMsg = diffSummary
-                ? '@' + commenter + ' submitted their review.\n\n---\n\n' + diffSummary + '\n\nFull report: `' + trackedPath + '/DIFF_REPORT.md`'
-                : '@' + commenter + ' submitted their review. No diff report generated.';
-              await reply(approvalMsg);
-              return;
-            }
-
-            // ---------- /dispute ----------
-            if (cmd === '/dispute') {
-              if (!labels.includes('curator-review')) {
-                await reply('`/dispute` is only valid after a reviewer has submitted their review (current: `' + labels.join(', ') + '`).');
-                return;
-              }
-
-              // Verify commenter is the curator
-              let curatorGithub = null;
-              if (isFolderItem && trackedPath) {
-                curatorGithub = resolveCurator(trackedPath);
-              }
-              if (curatorGithub && commenter !== curatorGithub) {
-                await reply('@' + commenter + ' only the curator (@' + curatorGithub + ') can dispute this review.');
-                return;
-              }
-
-              if (!reason) {
-                await reply('Please provide a reason for your dispute. Usage: `/dispute your reason here`');
-                return;
-              }
-              const activePath = trackedPath;
-              if (isFolderItem) {
                 try {
-                  validateReviewStructure(activePath);
-                  const metadataPath = path.join(activePath, 'review_metadata.yml');
-                  updateReviewMetadata(metadataPath, {
-                    status: 'completed',
-                    approval_timestamp: new Date().toISOString(),
-                    approved_by: commenter
-                  });
-                  await moveTrackedItemToStage(activePath, 'completed');
+                  validateReviewStructure(trackedPath);
                 } catch (err) {
-                  await reply(`Approval validation failed: ${err.message}`);
+                  await reply('Approval validation failed: ' + err.message);
                   return;
                 }
               }
-              await setLabels(['complete'], ['review-2-active']);
-              await reply(`Approved by @${commenter}. The review is now marked complete. If this issue is linked to a tracked review folder or file and maintainer email settings are configured, the completion workflow will attempt finalization.`);
-              // notify-on-complete.yml takes over from here on the 'complete' label.
-              return;
-            }
-
-            // ---------- /complete ----------
-            if (cmd === '/complete') {
-              if (!labels.includes('curator-review')) {
-                await reply('`/complete` is only valid after a reviewer has submitted their review (current: `' + labels.join(', ') + '`).');
-                return;
-              }
-
-              let curatorGithub = null;
-              if (isFolderItem && trackedPath) {
-                curatorGithub = resolveCurator(trackedPath);
-              }
-              if (curatorGithub && commenter !== curatorGithub) {
-                await reply('@' + commenter + ' only the curator (@' + curatorGithub + ') can mark this complete.');
-                return;
-              }
-
               let completedPath = trackedPath;
               if (trackedPath && hasTrackedPath) {
                 try {
                   const moved = await moveTrackedItemToStage(trackedPath, 'completed');
                   completedPath = moved.path;
                 } catch (err) {
-                  await reply('Could not move to completed: ' + err.message);
+                  await reply('Could not move to `reviews/completed/`: ' + err.message);
                   return;
                 }
               }
-
-              if (completedPath && fs.statSync(completedPath).isDirectory()) {
+              if (completedPath && fs.existsSync(completedPath) && fs.statSync(completedPath).isDirectory()) {
                 const metaPath = path.join(completedPath, 'review_metadata.yml');
                 if (fs.existsSync(metaPath)) {
-                  let meta = fs.readFileSync(metaPath, 'utf8');
-                  meta = meta.replace(/^status:.*$/m, 'status: "completed"');
-                  fs.writeFileSync(metaPath, meta);
+                  updateReviewMetadata(metaPath, {
+                    status: 'completed',
+                    approval_timestamp: new Date().toISOString(),
+                    approved_by: commenter,
+                  });
                   gitConfig();
                   execFileSync('git', ['add', metaPath]);
                   execFileSync('git', ['commit', '-m', 'Complete: ' + path.basename(completedPath) + ' approved by @' + commenter + ' (refs #' + issue.number + ')']);
                   execFileSync('git', ['push']);
                 }
               }
-
-              await setLabels(['complete'], ['curator-review', 'disputed']);
+              await setLabels(['complete'], ['review-2-active']);
               await github.rest.issues.update({
                 ...context.repo,
                 issue_number: issue.number,
-                state: 'closed'
+                state: 'closed',
               });
-              await reply('Completed by @' + commenter + '. The review is finalized and moved to `reviews/completed/`. Issue closed.');
+              await reply('✅ Approved by @' + commenter + '. The review is complete and has been moved to `reviews/completed/`. Issue closed.');
+              return;
+            }
+
+            // ---------- /dispute ----------
+            // Used by Reviewer 2 when they disagree with something in the file.
+            // Flags the item for curator review — only the curator can resolve it.
+            if (cmd === '/dispute') {
+              if (!labels.includes('review-2-active')) {
+                await reply('`/dispute` is only valid during an active review (current: `' + labels.join(', ') + '`).');
+                return;
+              }
+              const assignees = (issue.assignees || []).map(a => a.login);
+              if (!assignees.includes(commenter)) {
+                await reply('@' + commenter + ' only the assigned second reviewer can raise a dispute.');
+                return;
+              }
+              if (!reason) {
+                await reply('Please provide a reason for the dispute. Usage: `/dispute your reason here`');
+                return;
+              }
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                curatorGithub = resolveCurator(trackedPath);
+              }
+              await setLabels(['disputed'], ['review-2-active']);
+              const curatorNotice = curatorGithub
+                ? '\n\nCurator @' + curatorGithub + ' has been notified and must now resolve this dispute using `/complete` or `/reject`.'
+                : '\n\nA curator must now resolve this dispute using `/complete` or `/reject`.';
+              await reply(
+                '⚠️ Dispute raised by @' + commenter + ': ' + reason +
+                curatorNotice
+              );
+              return;
+            }
+
+            // ---------- /complete ----------
+            // Curator only. Used to finalize a disputed item and move it to completed/.
+            if (cmd === '/complete') {
+              if (!labels.includes('disputed')) {
+                await reply('`/complete` is only valid on a disputed review (current: `' + labels.join(', ') + '`). For a normal review, the reviewer uses `/approve`.');
+                return;
+              }
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                curatorGithub = resolveCurator(trackedPath);
+              }
+              if (curatorGithub && commenter !== curatorGithub) {
+                await reply('@' + commenter + ' only the curator (@' + curatorGithub + ') can complete a disputed review.');
+                return;
+              }
+              if (isFolderItem && trackedPath) {
+                try {
+                  validateReviewStructure(trackedPath);
+                } catch (err) {
+                  await reply('Completion validation failed: ' + err.message);
+                  return;
+                }
+              }
+              let completedPath = trackedPath;
+              if (trackedPath && hasTrackedPath) {
+                try {
+                  const moved = await moveTrackedItemToStage(trackedPath, 'completed');
+                  completedPath = moved.path;
+                } catch (err) {
+                  await reply('Could not move to `reviews/completed/`: ' + err.message);
+                  return;
+                }
+              }
+              if (completedPath && fs.existsSync(completedPath) && fs.statSync(completedPath).isDirectory()) {
+                const metaPath = path.join(completedPath, 'review_metadata.yml');
+                if (fs.existsSync(metaPath)) {
+                  updateReviewMetadata(metaPath, {
+                    status: 'completed',
+                    approval_timestamp: new Date().toISOString(),
+                    approved_by: commenter,
+                  });
+                  gitConfig();
+                  execFileSync('git', ['add', metaPath]);
+                  execFileSync('git', ['commit', '-m', 'Complete (curator): ' + path.basename(completedPath) + ' resolved by @' + commenter + ' (refs #' + issue.number + ')']);
+                  execFileSync('git', ['push']);
+                }
+              }
+              await setLabels(['complete'], ['disputed']);
+              await github.rest.issues.update({
+                ...context.repo,
+                issue_number: issue.number,
+                state: 'closed',
+              });
+              await reply('✅ Dispute resolved by curator @' + commenter + '. The review has been moved to `reviews/completed/`. Issue closed.');
+              return;
+            }
+
+            // ---------- /reject ----------
+            // Curator only. Used when the curator disagrees with the reviewer's changes.
+            // Item stays in place, flagged for further discussion.
+            if (cmd === '/reject') {
+              if (!labels.includes('disputed')) {
+                await reply('`/reject` is only valid on a disputed review (current: `' + labels.join(', ') + '`).');
+                return;
+              }
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                curatorGithub = resolveCurator(trackedPath);
+              }
+              if (curatorGithub && commenter !== curatorGithub) {
+                await reply('@' + commenter + ' only the curator (@' + curatorGithub + ') can reject a disputed review.');
+                return;
+              }
+              if (!reason) {
+                await reply('Please provide a reason for the rejection. Usage: `/reject your reason here`');
+                return;
+              }
+              // Item stays where it is — label updated to reflect curator rejection, kept open for discussion.
+              await setLabels(['curator-rejected'], ['disputed']);
+              await reply(
+                '❌ Rejected by curator @' + commenter + ': ' + reason +
+                '\n\nThis item remains flagged and open for further discussion. The curator should comment next steps directly on this issue.'
+              );
               return;
             }
