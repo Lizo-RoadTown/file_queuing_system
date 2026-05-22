@@ -1,108 +1,145 @@
-# SDE Review Queue
+<div align="center">
 
-A system for coordinating second reviews of research manuscripts and Jupyter notebooks. Built on GitHub — no extra software needed.
+# 📋 SDE Review Queue
 
-The goal is reproducibility and transparency. Every decision made during a review is recorded automatically so nobody has to ask anyone what happened or why.
+**A GitHub-native system for coordinating second reviews of research manuscripts and Jupyter notebooks.**
+
+No extra software needed — everything runs through issue comments.
+
+![GitHub Issues](https://img.shields.io/github/issues/Lizo-RoadTown/file_queuing_system)
+![GitHub last commit](https://img.shields.io/github/last-commit/Lizo-RoadTown/file_queuing_system)
+
+</div>
 
 ---
 
-## How it works
+## 📌 Overview
 
-Each manuscript that needs a second review is tracked as a GitHub issue. Reviewers browse the queue, claim a paper, do their review, and submit — all through comments on the issue. The system handles the rest automatically.
+The goal is reproducibility and transparency. Every decision made during a review is recorded automatically so nobody has to ask what happened or why.
+
+Each manuscript is tracked as a GitHub issue. Reviewers browse the queue, claim a paper, do their review, and submit — all through issue comments. The system handles the rest.
+
+---
+
+## 🔄 Review Flow
 
 ```mermaid
 flowchart LR
     A[awaiting-review-2] -->|/checkout| B[review-2-active]
-    B -->|/approve| C[curator-review]
-    C -->|/complete| D[complete]
-    C -->|/dispute| E[disputed]
-    E -->|/approve again| C
+    B -->|/approve| D[complete ✅]
+    B -->|/dispute| C[disputed ⚠️]
+    C -->|/complete| D
+    C -->|/reject| C
     B -->|/release| A
 ```
 
 ---
 
-## What the system does automatically
+## ⚡ What Changed
 
-When you `/checkout` a paper:
-- Files move from `awaiting-review-2` to `in-progress`
-- A copy of the curator's notebook is created for you to work in
-- You are assigned to the issue
+> Already familiar with the queue? Here is what is different.
 
-When you `/approve`:
-- Both notebooks are compared cell by cell
-- Every line you changed is counted
-- A `DIFF_REPORT.md` is generated showing what changed and why
-- The curator is notified with a summary
-- Label changes to `curator-review`
-
-When the curator `/dispute`s:
-- Their reason is recorded in `curator_notes.md`
-- The reviewer is notified
-- Label changes to `disputed`
-- Reviewer updates their notebook and `/approve`s again
-
-When the curator `/complete`s:
-- Files move to `completed`
-- Issue closes
-
----
-## Important: Codespaces-Only Devcontainer
-
-This repository includes a devcontainer that is intentionally restricted to GitHub Codespaces.
-
-- In GitHub Codespaces: the container starts normally.
-- In local VS Code on your computer: do not choose "Reopen in Container" for this repository.
-
-If you accidentally choose it locally, container startup will fail by design.
-
-## Where Files Live
-
-## Commands
-
-| Command | Who | What happens |
-|---|---|---|
-| `/checkout` | Any reviewer | Claims the paper, creates your notebook copy |
-| `/approve` | Assigned reviewer | Generates diff report, notifies curator |
-| `/dispute reason` | Curator only | Records dispute, notifies reviewer |
-| `/complete` | Curator only | Finalizes review, closes issue |
-| `/release` | Assigned reviewer | Returns paper to the queue |
+| Before | Now |
+|---|---|
+| `/approve` sent item to `curator-review` | `/approve` goes **straight to completed** — no curator step needed |
+| `/dispute` was used by the curator | `/dispute` is now used by **Reviewer 2** when they disagree with something |
+| `/complete` could be used after any review | `/complete` is now **curator-only** and only works on disputed items |
+| No way for curator to block completion | New `/reject` lets the curator **flag a dispute for further discussion** |
+| Checkout created a duplicate loose notebook | Original notebook is now **moved** into `original/` — no duplicate ever exists |
 
 ---
 
-## Notebook conventions
+## 💬 Slash Commands
 
-Two comments your team uses while working in notebooks:
+| Command | Who | When to use | What happens |
+|---|---|---|---|
+| `/checkout` | Any reviewer | Item is in `awaiting-review-2` | Moves to `in-progress`, sets up review structure, assigns you |
+| `/approve` | Reviewer 2 | Review is complete and correct | Moves straight to `completed/`, closes issue ✅ |
+| `/dispute <reason>` | Reviewer 2 | You disagree with something | Flags as disputed, notifies curator ⚠️ |
+| `/complete` | Curator only | Item is disputed | Finalizes, moves to `completed/`, closes issue ✅ |
+| `/reject <reason>` | Curator only | Curator disagrees with changes | Keeps flagged and open for discussion ❌ |
+| `/release` | Reviewer 2 | Want to return without a decision | Moves back to `awaiting-review-2`, unassigns you |
+
+---
+
+## 🟢 Normal Review Flow
+
+```
+1. Comment /checkout
+   → item moves to reviews/in-progress/
+   → review structure is created
+   → you are assigned to the issue
+
+2. Open review-copy/ notebook
+   → add #SOURCE: p.X where you found each value
+   → add #CHANGED: reason above anything you change
+   → do not edit anything in original/
+
+3. Comment /approve
+   → item moves to reviews/completed/
+   → issue closes ✅
+```
+
+---
+
+## 🔴 Dispute Flow
+
+```
+1. Comment /dispute <your reason>
+   → item is flagged as disputed
+   → curator is notified ⚠️
+
+2. Curator reviews and either:
+   → /complete  moves to completed/, closes issue ✅
+   → /reject    keeps flagged, issue stays open for discussion ❌
+```
+
+---
+
+## 📓 Notebook Conventions
 
 | Convention | Who | What it means |
 |---|---|---|
 | `#SOURCE: p.X eq.(Y)` | Curator and reviewer | Where this value came from in the paper |
-| `#CHANGED: reason` | Reviewer | Why this line was changed |
-| `#DISPUTE: reason` | Curator | Why they disagree with the change |
+| `#CHANGED: reason` | Reviewer 2 | Why this line was changed |
 
 ---
-## Where files live
 
-Each paper moves through three folders as it progresses:
+## 📁 Where Files Live
+
+Each paper moves through three folders:
 
 | Folder | Meaning |
 |---|---|
 | `reviews/awaiting-review-2/` | Needs a second reviewer |
 | `reviews/in-progress/` | Someone is actively reviewing |
-| `reviews/completed/` | Both reviews done, diff report committed |
+| `reviews/completed/` | Review done and finalized |
 
 Each paper folder contains:
 
-| File | What it is |
+| File / Folder | What it is |
 |---|---|
-| `original/` | Curator's notebook — never edited |
-| `review-copy/` | Reviewer's copy — edited during review |
-| `review_metadata.yml` | Tracks who reviewed, timestamps |
-| `DIFF_REPORT.md` | Auto-generated on /approve |
-| `curator_notes.md` | Created if curator uses /dispute |
+| `original/` | Original notebook — moved here on `/checkout`, never edited |
+| `review-copy/` | Reviewer's working copy — edit this one |
+| `notes/review_notes.md` | Your review notes |
+| `review_metadata.yml` | Tracks reviewer, timestamps, and status |
+
 ---
 
-## Getting started
+## ⚠️ Important: Codespaces-Only Devcontainer
+
+This repository includes a devcontainer intentionally restricted to GitHub Codespaces.
+
+| Environment | Status |
+|---|---|
+| GitHub Codespaces | ✅ Works normally |
+| Local VS Code | ❌ Do not choose "Reopen in Container" |
+
+If you accidentally open it locally, container startup will fail by design.
+
+---
+
+## 🚀 Getting Started
 
 1. **New here?** Start with the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md)
 2. **Ready to review?** Read the [Reviewer Guide](CONTRIBUTING.md)
@@ -110,6 +147,6 @@ Each paper folder contains:
 
 ---
 
-## Team members
+## 👥 Team Members
 
 Team member names and GitHub usernames are mapped in `team_members.yml`. If your name is not in that file the system cannot notify you or restrict commands correctly — contact the repo maintainer to be added.
