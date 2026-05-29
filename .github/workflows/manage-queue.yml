@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   handle-command:
-    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve') || startsWith(github.event.comment.body, '/dispute') || startsWith(github.event.comment.body, '/complete') || startsWith(github.event.comment.body, '/reject'))
+    if: github.event.issue.state == 'open' && (startsWith(github.event.comment.body, '/checkout') || startsWith(github.event.comment.body, '/release') || startsWith(github.event.comment.body, '/approve') || startsWith(github.event.comment.body, '/dispute') || startsWith(github.event.comment.body, '/complete') || startsWith(github.event.comment.body, '/reject') || startsWith(github.event.comment.body, '/reopen'))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -534,11 +534,38 @@ jobs:
                 await reply('Please provide a reason for the rejection. Usage: `/reject your reason here`');
                 return;
               }
-              // Item stays where it is — label updated to reflect curator rejection, kept open for discussion.
+              // Item stays where it is. Label updated to reflect curator rejection, kept open for discussion.
               await setLabels(['curator-rejected'], ['disputed']);
               await reply(
                 '❌ Rejected by curator @' + commenter + ': ' + reason +
-                '\n\nThis item remains flagged and open for further discussion. The curator should comment next steps directly on this issue.'
+                '\n\nThis item remains flagged and open for further discussion. Either party can comment `/reopen` to return the item to active second review once a path forward is agreed.'
+              );
+              return;
+            }
+
+            // ---------- /reopen ----------
+            // Used after /reject when the reviewer and curator have agreed on a path forward.
+            // Either the assigned reviewer or the recorded curator can run this.
+            // Returns the item to review-2-active so the reviewer can update and re-/approve or re-/dispute.
+            if (cmd === '/reopen') {
+              if (!labels.includes('curator-rejected')) {
+                await reply('`/reopen` is only valid on a curator-rejected review (current: `' + labels.join(', ') + '`).');
+                return;
+              }
+              let curatorGithub = null;
+              if (isFolderItem && trackedPath) {
+                curatorGithub = resolveCurator(trackedPath);
+              }
+              const assignees = (issue.assignees || []).map(a => a.login);
+              const isAssignedReviewer = assignees.includes(commenter);
+              const isCurator = curatorGithub && commenter === curatorGithub;
+              if (!isAssignedReviewer && !isCurator) {
+                await reply('@' + commenter + ' only the assigned reviewer or the curator can reopen a rejected review.');
+                return;
+              }
+              await setLabels(['review-2-active'], ['curator-rejected']);
+              await reply(
+                '🔄 Reopened by @' + commenter + '. The item is back in `review-2-active`. The reviewer can now update the notebook and comment `/approve` or `/dispute` again.'
               );
               return;
             }
