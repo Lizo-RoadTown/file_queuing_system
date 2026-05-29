@@ -1,10 +1,6 @@
-# 3 Methodology
+# Methodology
 
-The curator side uses hierarchical task analysis to decompose the curation pair's procedure, a simple state model for the working artifact (draft in `curation-dev/`, submitted to `reviews/awaiting-review-2/`), a sequence diagram for the PR submission flow, and a layered architecture that separates the curation pair's working environment from the submission interface.
-
----
-
-## 3.1 Task breakdown and information flow
+## What the steps are
 
 The curation pair's procedure has five steps, taken directly from the project orientation:
 
@@ -16,7 +12,7 @@ The curation pair's procedure has five steps, taken directly from the project or
 
 These map onto the work the team does locally (steps 1 through 4) and the submission that follows (step 5, realized as the PR into `reviews/awaiting-review-2/`).
 
-### Figure 1: Curation pair hierarchical task analysis
+### Curation pair hierarchical task analysis
 
 ```mermaid
 flowchart TD
@@ -55,25 +51,25 @@ flowchart TD
     T5 --> T5f[5f. bootstrap-seed-issues.yml creates [REVIEW] issue;<br/>update-queue-csv.yml appends to review_log.csv]
 ```
 
-### 3.1.1 Task 1: Choose a model and figure
+### Task 1: Choose a model and figure
 
 The pair selects a candidate paper that meets two criteria: published with a DOI or comparable identifier, and describing infection dynamics at any pathogen scale or biological scale. Within the paper, the pair identifies the specific figure to reproduce, and the pair decides which teammate will be the implementing curator (and therefore the PR author and `reviewer_1`).
 
-**Table VII: Task 1 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Find a candidate paper | The pair reads candidate papers and applies selection criteria | None automated | Pair agrees on a paper |
 | Identify the figure | The pair reads the paper to identify a specific figure as the reproduction target | None automated | Pair agrees on a figure |
 | Decide who implements | The pair agrees on which teammate is the implementing curator | None automated | Implementing teammate identified |
 
-### 3.1.2 Task 2: Attempt to implement
+### Task 2: Attempt to implement
 
 The implementing curator opens the environment, copies the template, fills the metadata header, implements the paper's equations as `drift_term` and `diffusion_term` functions, supplies parameter values with `#SOURCE:` annotations, and runs the notebook end to end. The reproducibility-testing criteria the implementing curator checks during this task: are the equations used to produce the figure described? Are all model parameters available? Are all initial conditions available?
 
-**Table VIII: Task 2 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Open the environment | Codespace from `.devcontainer/`, or local conda from `curation-dev/setup/install-env.*` | Environment activates; notebook server starts | Imports succeed |
 | Copy template | Implementing curator copies `curation-dev/template/curation-template.ipynb` to `curation-dev/notebooks/<paper-id>.ipynb` | New notebook visible | Notebook ready |
@@ -82,38 +78,38 @@ The implementing curator opens the environment, copies the template, fills the m
 | Supply parameter values | Curator fills `parameter_values`, `initial_values`, `initial_time`, `final_time` with `#SOURCE:` comments | None automated | Each value cited |
 | Run end to end | Curator clicks Run All | Cell outputs appear; final cell produces a figure | Curator compares to paper figure |
 
-### 3.1.3 Task 3: Document outcomes
+### Task 3: Document outcomes
 
 The implementing curator records what happened. Outcome is `Successful` if the produced figure looks like the published figure, `Failed` otherwise. Notes records anything off-paper: assumptions the curator had to make, equations or parameters or initial conditions that were missing from the publication. The rule for this stage is no guessing or approximating. If something is missing from the paper, the curator documents the absence; they do not invent a substitute.
 
-**Table IX: Task 3 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Set Outcome | Curator updates the Outcome field to `Successful` or `Failed` | None automated | Outcome reflects reality |
 | Fill Notes | Curator records assumptions, missing items, anything deviating from the paper | None automated | Notes are complete |
 | Confirm no inventions | Curator reviews the notebook for any guessed or approximated values | None automated | Every value is sourced or documented as absent |
 
-### 3.1.4 Task 4: Verify outcomes with teammate (first review)
+### Task 4: Verify outcomes with teammate (first review)
 
 The verifying teammate opens the notebook, re-runs it from a clean kernel, cross-checks the parameters and equations against the paper, and confirms or pushes back on the documented Outcome and Notes. The first review is informal; the system does not gate on it. The verifying teammate's confirmation is communicated within the team.
 
-**Table X: Task 4 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Open the notebook | The verifying teammate opens the implementing curator's `<paper-id>.ipynb` | Notebook appears in the editor | Teammate ready |
 | Re-run from clean kernel | Teammate restarts the kernel and runs all cells | Cells execute; outputs match (or do not match) the implementing curator's outputs | Teammate compares to documented Outcome |
 | Cross-check against paper | Teammate verifies parameters, equations, and initial conditions cell by cell | None automated | Teammate satisfied or pushes back |
 | Confirm or push back | Teammate agrees with the documented Outcome and Notes, or names what they disagree with | Direct conversation within the team | Pair agrees on the final Outcome and Notes |
 
-### 3.1.5 Task 5: Report findings (submit for second review)
+### Task 5: Report findings (submit for second review)
 
 The implementing curator moves the finished folder out of `curation-dev/` and into `reviews/awaiting-review-2/`, opens a PR, and lets the submission workflows run.
 
-**Table XI: Task 5 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Create submission folder | Implementing curator creates `reviews/awaiting-review-2/<paper-id>/` and copies the notebook into it | New folder visible | Folder exists |
 | Add manuscript PDF | Curator places the paper's PDF in the folder | File visible | PDF is in the folder |
@@ -128,11 +124,11 @@ The implementing curator moves the finished folder out of `curation-dev/` and in
 
 ---
 
-## 3.2 Working artifact state
+## Working artifact state
 
 The curation stage produces an artifact that exists in one of two locations during its lifecycle. While in draft, the notebook lives under `curation-dev/notebooks/` and is gitignored. Once the pair agrees the work is ready (Task 4 complete), the implementing curator moves the finished folder to `reviews/awaiting-review-2/<paper-id>/` and opens a PR. From that point on, the artifact is governed by the reviewer-side state machine.
 
-### Figure 2: Curation artifact state
+### Curation artifact state
 
 ```mermaid
 stateDiagram-v2
@@ -147,11 +143,11 @@ stateDiagram-v2
 
 ---
 
-## 3.3 Submission sequence model
+## Submission sequence
 
 The submission flow involves the implementing curator, the PR, three workflows (`validate-submission.yml`, `bootstrap-seed-issues.yml`, `update-queue-csv.yml`), the git filesystem, and the issue tracker.
 
-### Figure 3: Submission sequence
+### Submission sequence
 
 ```mermaid
 sequenceDiagram
@@ -190,11 +186,11 @@ sequenceDiagram
 
 ---
 
-## 3.4 Layered architecture
+## Layered architecture
 
 The curator side separates into three layers. The environment layer provides the curation pair's working space (Codespace or local devcontainer) plus the `epi-sde` Python environment. The drafting layer is the gitignored `curation-dev/` workspace with template, notebooks, and setup scripts. The submission interface is the PR-based handoff into `reviews/awaiting-review-2/`, which triggers three workflows that record authorship, create the tracking issue, and update the queue index. The reviewer-side state machine takes over from there.
 
-### Figure 4: Curator-side layered architecture
+### Curator-side layered architecture
 
 ```mermaid
 flowchart TB
@@ -232,11 +228,11 @@ flowchart TB
 
 ---
 
-## 3.5 Tools used in curation
+## Tools
 
-### Table XII: Tools used in curation
+### Tools
 
-| Tool | Purpose | Layer it serves |
+| Tool | What it does | Where it fits |
 |---|---|---|
 | GitHub Codespaces | Browser-based development environment with the `epi-sde` env pre-built | Environment |
 | Local devcontainer config (`.devcontainer/`) | Defines the same environment for Codespaces | Environment |

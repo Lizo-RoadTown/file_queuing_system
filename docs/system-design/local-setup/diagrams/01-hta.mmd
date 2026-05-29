@@ -1,0 +1,39 @@
+flowchart TD
+    G[Goal: a local checkout that serves<br/>both the curator role and the<br/>independent-reviewer role]
+    G --> T1[Task 1<br/>Install required software]
+    G --> T2[Task 2<br/>Obtain repository access]
+    G --> T3[Task 3<br/>Clone the repository]
+    G --> T4[Task 4<br/>Set up the Python environment]
+    G --> T5[Task 5<br/>Open in Visual Studio Code]
+    G --> T6[Task 6<br/>Run the daily workflow]
+
+    T1 --> T1a[1a. Install Git from git-scm.com<br/>verify with git --version]
+    T1 --> T1b[1b. Install Visual Studio Code<br/>check "Add to PATH"]
+    T1 --> T1c[1c. Install Miniconda<br/>check "Add Miniconda3 to PATH"<br/>verify with conda --version]
+    T1 --> T1d[1d. Create a GitHub account<br/>save username and password]
+
+    T2 --> T2a[2a. Send GitHub username<br/>to the repository owner]
+    T2 --> T2b[2b. Accept the collaborator<br/>email invitation]
+    T2 --> T2c[2c. Generate a Personal Access Token<br/>Settings > Developer settings ><br/>Tokens (classic) > repo scope]
+    T2 --> T2d[2d. Save the PAT in a password<br/>manager or secure note]
+
+    T3 --> T3a[3a. Open PowerShell, cd into<br/>Documents or Projects<br/>(not a OneDrive-synced folder)]
+    T3 --> T3b[3b. git clone https://github.com/<br/>Lizo-RoadTown/file_queuing_system.git]
+    T3 --> T3c[3c. Enter GitHub username<br/>paste PAT as password]
+    T3 --> T3d[3d. cd file_queuing_system]
+
+    T4 --> T4a[4a. Write env.yml<br/>(review-queue + python=3.11 + basic stack)<br/>or use curation-dev/setup/env.yml<br/>(epi-sde + diffrax + jax==0.6)]
+    T4 --> T4b[4b. conda env create -f env.yml<br/>or run curation-dev/setup/install-env.*]
+    T4 --> T4c[4c. conda activate <env>]
+    T4 --> T4d[4d. python -m ipykernel install --user<br/>--name <env> --display-name "<label>"]
+
+    T5 --> T5a[5a. code . from PowerShell<br/>or launch-code.* from curation-dev/]
+    T5 --> T5b[5b. Dismiss "Reopen in Container" prompt]
+    T5 --> T5c[5c. Install extensions:<br/>Python, Jupyter,<br/>GitHub Pull Requests and Issues]
+    T5 --> T5d[5d. Ctrl+Shift+P > Python: Select Interpreter<br/>choose review-queue or Review Queue Python]
+
+    T6 --> T6a[6a. cd into the repository]
+    T6 --> T6b[6b. conda activate <env>]
+    T6 --> T6c[6c. git pull]
+    T6 --> T6d[6d. code . and do work]
+    T6 --> T6e[6e. git add, git commit, git push<br/>or Source Control > commit > sync]

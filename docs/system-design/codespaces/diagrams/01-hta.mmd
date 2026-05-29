@@ -1,0 +1,45 @@
+flowchart TD
+    G[Goal: open a working browser-based<br/>environment with epi-sde available<br/>and the repository checked out]
+    G --> T1[Task 1<br/>Log into GitHub]
+    G --> T2[Task 2<br/>Navigate to the repo]
+    G --> T3[Task 3<br/>Open the Code dropdown]
+    G --> T4[Task 4<br/>Switch to the Codespaces tab]
+    G --> T5[Task 5<br/>Create codespace on main]
+    G --> T6[Task 6<br/>Wait for the build]
+    G --> T7[Task 7<br/>Use browser-based VS Code]
+    G --> T8[Task 8<br/>Save and sync work]
+    G --> T9[Task 9<br/>Close or reopen later]
+
+    T1 --> T1a[1a. Open github.com in browser]
+    T1 --> T1b[1b. Sign in with credentials]
+    T1 --> T1c[1c. Confirm collaborator access<br/>to file_queuing_system]
+
+    T2 --> T2a[2a. Open repository URL]
+    T2 --> T2b[2b. Confirm landing on main branch]
+
+    T3 --> T3a[3a. Click green Code button]
+    T3 --> T3b[3b. Panel opens with Local / Codespaces tabs]
+
+    T4 --> T4a[4a. Click Codespaces tab]
+    T4 --> T4b[4b. See list of existing codespaces (if any)]
+
+    T5 --> T5a[5a. Click Create codespace on main]
+    T5 --> T5b[5b. New browser tab opens with build screen]
+
+    T6 --> T6a[6a. Codespaces backend reads<br/>.devcontainer/devcontainer.json]
+    T6 --> T6b[6b. Image build runs (first time only)]
+    T6 --> T6c[6c. Repository auto-clones into /workspaces]
+    T6 --> T6d[6d. postCreateCommand runs<br/>(activates epi-sde when config is populated)]
+
+    T7 --> T7a[7a. VS Code opens in browser]
+    T7 --> T7b[7b. File explorer shows repo files]
+    T7 --> T7c[7c. Terminal panel available]
+    T7 --> T7d[7d. Edit notebooks and source files]
+
+    T8 --> T8a[8a. Source Control panel shows changes]
+    T8 --> T8b[8b. Stage, commit with message]
+    T8 --> T8c[8c. Sync Changes pushes to GitHub]
+
+    T9 --> T9a[9a. Close browser tab; Codespace persists]
+    T9 --> T9b[9b. Return via Code dropdown ->Codespaces tab]
+    T9 --> T9c[9c. Click existing codespace to reopen]

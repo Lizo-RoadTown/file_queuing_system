@@ -1,0 +1,33 @@
+flowchart TB
+    subgraph OS["Hardware and operating system layer"]
+        H1[Windows, macOS, or Linux]
+        H2[User account with install rights]
+        H3[PATH: Git, code, conda]
+    end
+
+    subgraph TOOLS["Installed-tools layer"]
+        T1[Git<br/>git-scm.com installer]
+        T2[Visual Studio Code<br/>code.visualstudio.com installer<br/>extensions: Python, Jupyter,<br/>GitHub Pull Requests and Issues]
+        T3[Miniconda<br/>docs.conda.io installer<br/>conda command on PATH]
+        T4[Optional: GitHub CLI<br/>for authenticated git over HTTPS]
+    end
+
+    subgraph WS["Workspace layer"]
+        W1[Conda environment<br/>review-queue (python=3.11 + basic stack)<br/>or epi-sde (full SDE stack<br/>with diffrax + jax==0.6)]
+        W2[Jupyter kernel spec<br/>python -m ipykernel install --user<br/>--name <env> --display-name "<label>"]
+        W3[Personal Access Token<br/>cached by git credential manager]
+    end
+
+    subgraph REPO["Repository layer"]
+        R1[Cloned working tree<br/>under Documents/ or Projects/<br/>not OneDrive-synced]
+        R2[.git/ commit history<br/>HTTPS remote: github.com/<br/>Lizo-RoadTown/file_queuing_system]
+        R3[curation-dev/setup/<br/>install-env.*, rm-env.*,<br/>config.*, env.yml]
+        R4[curation-dev/launch-code.*<br/>activate epi-sde + code .]
+        R5[docs/LOCAL_SETUP_GUIDE.md<br/>user-facing setup guide]
+        R6[.devcontainer/<br/>currently empty<br/>(no local container path)]
+    end
+
+    OS --> TOOLS
+    TOOLS --> WS
+    WS --> REPO
+    REPO -.daily workflow.-> WS

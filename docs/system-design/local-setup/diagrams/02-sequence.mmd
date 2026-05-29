@@ -1,0 +1,49 @@
+sequenceDiagram
+    actor User as Operator
+    participant PS as PowerShell
+    participant Git as Git
+    participant Conda as Conda
+    participant GH as GitHub web
+    participant VSC as Visual Studio Code
+
+    User->>GH: open github.com, sign up
+    GH-->>User: account created
+    User->>GH: send username to maintainer (out of band)
+    GH-->>User: collaborator invitation by email
+    User->>GH: accept invitation
+    User->>GH: Settings > Developer settings ><br/>Tokens (classic) > Generate new (classic)
+    GH-->>User: PAT shown once (ghp_...)
+    User->>User: save PAT in password manager
+
+    User->>PS: open PowerShell
+    User->>PS: cd C:\Users\<name>\Documents
+    User->>PS: git clone https://github.com/<br/>Lizo-RoadTown/file_queuing_system.git
+    PS->>Git: git clone
+    Git->>GH: HTTPS request for repository
+    GH-->>Git: ask for credentials
+    Git-->>User: prompt for username + password
+    User->>Git: enter username + paste PAT
+    Git->>GH: authenticate with PAT
+    GH-->>Git: send repository objects
+    Git-->>PS: working tree at file_queuing_system/
+    User->>PS: cd file_queuing_system
+
+    User->>PS: write setup/env.yml (review-queue)<br/>or use curation-dev/setup/env.yml (epi-sde)
+    User->>PS: conda env create -f <env.yml><br/>or curation-dev/setup/install-env.*
+    PS->>Conda: env create
+    Conda->>Conda: resolve dependencies from conda-forge
+    Conda-->>PS: "done" + activate instruction
+    User->>PS: conda activate <env>
+    PS-->>User: prompt prefix shows (<env>)
+    User->>PS: python -m ipykernel install --user<br/>--name <env> --display-name "<label>"
+    PS-->>User: kernel spec installed
+
+    User->>PS: code .
+    PS->>VSC: launch with workspace
+    VSC-->>User: open editor; prompt "Reopen in Container"?
+    User->>VSC: dismiss prompt
+    User->>VSC: install Python, Jupyter,<br/>GitHub Pull Requests and Issues extensions
+    User->>VSC: Ctrl+Shift+P > Python: Select Interpreter
+    VSC-->>User: list of interpreters
+    User->>VSC: choose <env>
+    VSC-->>User: status bar shows <env> as interpreter

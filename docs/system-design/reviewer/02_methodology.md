@@ -1,14 +1,10 @@
-# 3 Methodology
+# Methodology
 
-This methodology uses hierarchical task analysis to decompose Reviewer 2's goals, a label-state machine to model the queue's lifecycle (the issue label is the single source of truth for "where in the process this paper is"), sequence diagrams to model slash-command interactions across actors, and a layered architecture to separate the GitHub-native UI from the orchestration workflows and the data on disk.
+## What the steps are
 
----
+Reviewer 2's job is to produce a verified review record for one paper. Three primary tasks reach the goal: claim work, perform the review and decide, and participate in dispute resolution when one is raised. The curator's submission task and the curator's resolution actions are documented separately in the curator-side system design.
 
-## 3.1 Task breakdown and information flow
-
-Reviewer 2's superordinate goal is to produce a verified, traceable verified review record for one paper. Three primary tasks reach the goal: claim work, perform the review and decide, and participate in dispute resolution when one is raised. The curator's submission task and the curator's resolution actions are documented separately in the curator-side system design.
-
-### Figure 1: Reviewer 2 hierarchical task analysis
+### Reviewer 2 hierarchical task analysis
 
 ```mermaid
 flowchart TD
@@ -36,13 +32,13 @@ flowchart TD
     T3 --> T3e[3e. Update notebook, push, re-/approve or re-/dispute]
 ```
 
-### 3.1.1 Task 1: Claim work
+### Task 1: Claim work
 
 The reviewer browses the queue, confirms eligibility, and claims an item with one comment. The system handles assignment, folder movement, and review-structure creation as a single transaction.
 
-**Table VII: Task 1 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Browse open issues | GitHub UI presents `awaiting-review-2` labeled items | Issue list filtered by label | Reviewer reads issue body for paper info |
 | Verify eligibility | Issue body shows recorded `reviewer_1` | None automated; manual check | Reviewer confirms they are not Reviewer 1 |
@@ -51,13 +47,13 @@ The reviewer browses the queue, confirms eligibility, and claims an item with on
 | Folder moves and structure is created | Workflow does `git mv` from `awaiting-review-2` to `in-progress`; creates `original/`, `review-copy/`, `notes/`, `review_metadata.yml` | Bot commits and pushes the moves and structure | Reviewer pulls locally |
 | Label transitions | Workflow swaps `awaiting-review-2` for `review-2-active`; adds the reviewer as assignee | Label change visible on issue | Reviewer sees state change |
 
-### 3.1.2 Task 2: Perform the review and decide
+### Task 2: Perform the review and decide
 
 The reviewer re-runs the notebook locally, annotates any changes, writes notes, commits, and decides between three commands: `/approve`, `/dispute <reason>`, or `/release`. The decision command triggers the final state transition.
 
-**Table VIII: Task 2 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Pull files | Local git fetches latest from `origin/main` | New folder structure appears locally | Reviewer opens `review-copy/_rvd.ipynb` |
 | Re-run notebook | Reviewer executes cells; outputs generated locally | Cell outputs in the notebook | Reviewer compares to manuscript PDF |
@@ -68,13 +64,13 @@ The reviewer re-runs the notebook locally, annotates any changes, writes notes, 
 | Or comment `/dispute <reason>` | Reviewer posts dispute with reason | Workflow applies `disputed`, posts @-mention to recorded curator | Reviewer waits for curator (see Task 3) |
 | Or comment `/release` | Reviewer hands back | Workflow unassigns reviewer, moves folder back to `awaiting-review-2/`, applies `awaiting-review-2` | Issue returns to queue |
 
-### 3.1.3 Task 3: Participate in dispute resolution
+### Task 3: Participate in dispute resolution
 
 This task runs only when Reviewer 2 raised `/dispute`. The reviewer waits passively for the curator's response, then either nothing further is required (if the curator `/complete`d) or the parties iterate via issue comments and `/reopen` until an agreed path forward exists.
 
-**Table IX: Task 3 information flow, system feedback, completion cue**
+**Steps in detail:**
 
-| Step | Information flow | System feedback | Completion cue |
+| Step | What happens | What you see | How you know it's done |
 |---|---|---|---|
 | Wait for curator | Reviewer monitors GitHub notifications | None | Curator posts `/complete` or `/reject` |
 | If `/complete`: issue closes, files move to `completed/` | Workflow runs the same path as `/approve` | `notify-on-complete.yml` fires | Reviewer sees closure comment |
@@ -85,13 +81,13 @@ This task runs only when Reviewer 2 raised `/dispute`. The reviewer waits passiv
 
 ---
 
-## 3.2 Queue lifecycle: label state machine
+## The state machine
 
 The queue's lifecycle is encoded entirely in the GitHub issue's label set. The label is the single source of truth for where a paper is in the process. Folder location and metadata follow the label, not the other way around. Every state transition is driven by a slash command, every command goes through `manage-queue.yml`, and every command's effect is recorded in the issue timeline alongside the comment that triggered it. The audit trail is automatic because no one writes status updates; the timeline already has them.
 
 The happy path is a three-state chain (`awaiting-review-2` → `review-2-active` → `complete`) with no curator gate. The dispute branch enters `disputed` only via `/dispute`, and only the curator can resolve it. `curator-rejected` is a non-terminal state from which `/reopen` returns the item to `review-2-active`.
 
-### Figure 2: Issue label state machine
+### Issue label state machine
 
 ```mermaid
 stateDiagram-v2
@@ -108,11 +104,11 @@ stateDiagram-v2
 
 ---
 
-## 3.3 Operator–system sequence model
+## Sequence diagrams
 
 Five actors participate in a review: Reviewer 1 (the curator), Reviewer 2, the GitHub issue (as the durable record), the Actions runner (as the orchestrator), and the git filesystem (as the data store). The sequence diagrams below trace the two consequential interactions: the happy path (`/approve`) and the dispute branch (`/dispute` followed by `/complete`, `/reject`, or `/reopen`).
 
-### Figure 3a: Happy path, `/approve` direct to complete
+### Happy path, `/approve` direct to complete
 
 ```mermaid
 sequenceDiagram
@@ -140,7 +136,7 @@ sequenceDiagram
     NOC->>Issue: post final comment<br/>(names Reviewer 1 and Reviewer 2)
 ```
 
-### Figure 3b: Dispute branch, `/dispute` followed by curator action and optional `/reopen`
+### Dispute branch, `/dispute` followed by curator action and optional `/reopen`
 
 ```mermaid
 sequenceDiagram
@@ -186,11 +182,11 @@ sequenceDiagram
 
 ---
 
-## 3.4 Layered architecture
+## Layered architecture
 
 The system separates into three layers, each replaceable without touching the layers above or below. The UI layer is GitHub's native issue interface and comment box: what reviewers touch. The orchestration layer is seven Actions workflows that respond to events (PR open, push to main, issue comment, label change, issue open). The data layer is the filesystem queue under `reviews/`, the index `queue/review_log.csv`, and per-folder metadata files. There is no separate logic layer in the currently active code path: business rules live inside the orchestration workflows themselves. One Python helper, the cell-by-cell notebook diff generator, lives in `scripts/archive/` and is no longer invoked.
 
-### Figure 4: Operating-state layered architecture
+### Operating-state layered architecture
 
 ```mermaid
 flowchart TB
@@ -228,11 +224,11 @@ flowchart TB
 
 ---
 
-## 3.5 Tools used to develop the design
+## Tools
 
-### Table X: Tools used to develop the design
+### Tools
 
-| Tool | Purpose | Layer it serves |
+| Tool | What it does | Where it fits |
 |---|---|---|
 | GitHub Actions | Event-driven orchestration for slash commands, PR validation, issue seeding, completion notifications | Orchestration |
 | GitHub Issues | Tracking record for each paper. Labels carry state. Comments carry commands and explanations | UI and audit trail |

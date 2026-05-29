@@ -1,36 +1,32 @@
-# 2 Constraints
+# Constraints
 
-## 2.1 Users
+## Who uses this
 
-The curator side has five user classes. The two primary operators sit inside the curation team of 2: one teammate acts as the implementing curator (will become `reviewer_1` on PR merge), and the other teammate acts as the first reviewer (verifies the implementing curator's work before submission). The independent second reviewer is a secondary user from the curator side: an operator from another team who will pick up the work through the queue after submission. The beneficiary and the science community are the same downstream users described on the reviewer side.
-
-The curator pair is the unit of work. Per-paper, one team handles selection, implementation, documentation, and the teammate verification. The implementing teammate is the one whose GitHub handle ends up as `reviewer_1` in the folder's `metadata.yml`; the verifying teammate's contribution is part of the team's internal process and is not separately recorded by the system.
-
-### 2.1.1 Primary operator: Implementing curator (Reviewer 1)
+### Implementing curator (Reviewer 1)
 
 The implementing curator selects the paper with their teammate, copies the template, fills in the parameters and equations, runs the notebook, and documents the outcome. After the teammate verifies the result, the implementing curator opens the PR. The system records them as `reviewer_1` in the folder's `metadata.yml`, written automatically by `validate-submission.yml` on merge. From that point forward, `manage-queue.yml` rejects `/checkout`, `/release`, and `/approve` from the implementing curator on their own item. The only commands available to them on their own item are `/complete`, `/reject`, or `/reopen` (after a `/reject`), and only when the second reviewer has raised `/dispute`.
 
-### 2.1.2 Primary operator: Verifying teammate (first reviewer)
+### Verifying teammate (first reviewer)
 
 The verifying teammate is the other person in the curation pair. They verify the implementing curator's outcome before submission. The system does not track this person separately; their work is part of the team's internal process. In practice the verifying teammate reads the notebook, re-runs it, checks the equations and parameters against the paper, and confirms or pushes back on the implementing curator's documented outcome. The first-review stage ends when the verifying teammate agrees that the documented outcome is faithful to what the team observed.
 
-### 2.1.3 Secondary user: Independent second reviewer
+### Independent second reviewer
 
 The second reviewer is an operator from a different team who will receive the curator pair's submission through the queue and verify it independently. The curator pair never directly interacts with the second reviewer during the curation stage. Their contribution to the second reviewer is the integrity of the submission: a complete folder shape, a stable DOI, a notebook that re-runs cleanly, and parameter values that the second reviewer can cross-check against the paper.
 
-### 2.1.4 Secondary user: Beneficiary
+### Beneficiary
 
 The beneficiary is the downstream consumer of completed reviews: the Bridge layer that packages folders for cross-organizational handoff, the receiving institution and PI who run verification engines, and external researchers who consume public observability surfaces. The curator pair's contribution to the beneficiary is the integrity of the submission's content: complete folder shape, stable DOI in metadata, and a notebook whose values can be cited back to the paper.
 
-### 2.1.5 Tertiary user: Science community
+### Science community
 
-The tertiary user is the broader scientific community. Their interaction is mediated through the planned browser extension that queries `queue/review_log.csv` by DOI and through public observability surfaces downstream. The curator pair contributes to this user class by accurately recording the DOI at submission, which is what makes DOI-based discoverability work.
+The broader scientific community includes external researchers. Their interaction is mediated through the planned browser extension that queries `queue/review_log.csv` by DOI and through public observability surfaces downstream. The curator pair contributes here by accurately recording the DOI at submission, which is what makes DOI-based discoverability work.
 
 ---
 
-### Table I: Implementing curator requirements
+### Implementing curator requirements
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | A reliable, reproducible Python environment | Curators may be on Windows, macOS, or Linux | Two interchangeable paths: GitHub Codespaces using `.devcontainer/devcontainer.json`, or local conda using `curation-dev/setup/install-env.*`. Both build the same `epi-sde` environment | Each curator has Codespace quota or local install permissions |
 | A blank notebook template | Each curation starts from a known shape so submissions are uniform | `curation-dev/template/curation-template.ipynb` provides a metadata header and named code cells for `variable_names`, `parameter_names`, `initial_values`, `parameter_values`, `initial_time`, `final_time`, `drift_term`, `diffusion_term` | The template covers the SDE models the team curates |
@@ -39,35 +35,35 @@ The tertiary user is the broader scientific community. Their interaction is medi
 | Authorship recorded on submission | The implementing curator should not need to manually claim Reviewer 1 status | `validate-submission.yml` writes `reviewer_1: <PR author>` into `metadata.yml` on merge | The PR author is the implementing curator |
 | A submission gate that catches missing pieces | Discovering missing files post-merge is expensive | `validate-submission.yml` requires `.ipynb` + `.pdf` per folder, warns on missing image, blocks merge on failure | Curators see the PR check status before merging |
 
-### Table II: Verifying teammate (first-reviewer) requirements
+### Verifying teammate (first-reviewer) requirements
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Access to the same environment as the implementing curator | Verification depends on running the same notebook from a clean kernel | Both teammates use the same `epi-sde` environment (Codespace or local) | The teammates coordinate environment choice |
 | Visibility into the implementing curator's work in progress | The verifying teammate needs to read the notebook and the documented outcome before submission | The team shares the work through the gitignored `curation-dev/` workspace (e.g., via the same Codespace or a shared branch) and via direct conversation | The teammates have an out-of-band channel to coordinate |
 | A clear documented outcome to verify against | Without a documented outcome the first review has nothing to confirm or push back on | The notebook metadata header has Outcome (Successful or Failed) and Notes fields that the implementing curator fills in before verification | The implementing curator documents honestly |
 | A way to push back without ambiguity | The first review must allow the verifying teammate to refuse a flawed submission | The team's convention is direct conversation. The verifying teammate refuses by declining to participate in the PR until concerns are addressed | The team has agreed that the verifying teammate's refusal blocks submission |
 
-### Table III: Independent second reviewer requirements (from the curator pair's perspective)
+### Independent second reviewer requirements (from the curator pair's perspective)
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | The notebook re-runs cleanly | The second reviewer will run it from a clean kernel as part of `/checkout` and verification | The first-review stage ends with a clean-kernel run check by the verifying teammate | The `epi-sde` environment is stable across reviewers |
 | Values are sourced | The second reviewer needs to confirm each value against the paper without guessing | The team's convention is `#SOURCE: p.X eq.(Y)` annotations. The first review is the opportunity to ensure each value has one | The team made notes about source pages during implementation |
 | Metadata is filled in | The second reviewer needs paper title, DOI, curator name, figure, and Outcome | The notebook template includes a metadata header with these fields. The first-review stage confirms they are filled | The implementing curator filled in the metadata header |
 | Folder shape is intact | The second reviewer's `/checkout` depends on finding a single `.ipynb` to copy | The submission folder contains exactly one notebook and one manuscript PDF | `validate-submission.yml` enforces this on PR |
 
-### Table IV: Beneficiary requirements
+### Beneficiary requirements
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Stable DOI on submission | The downstream index keys on DOI | The implementing curator enters the DOI in the metadata header and in the issue body. `update-queue-csv.yml` reads it into `review_log.csv` | The paper has a DOI or comparable identifier (per selection criteria) |
 | Hashable folder content | The downstream Bridge will compute per-file SHA-256 hashes | The submission folder contains text files (`.ipynb`, `.md`, `.yml`) plus a `.pdf` binary, all stable across reads | The curator does not include transient artifacts |
 | Recorded authorship | The Bridge attributes the work by GitHub handle | `metadata.yml.reviewer_1` is written by `validate-submission.yml` on merge | The PR author is the implementing curator |
 
-### Table V: Science community requirements (from the curator pair's perspective)
+### Science community requirements (from the curator pair's perspective)
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Accurate DOI on submission | DOI-based discoverability depends on the DOI being correct | The implementing curator enters the DOI in the issue body or the queue issue template, where `update-queue-csv.yml` reads it | The implementing curator copies the DOI accurately from the paper |
 | Plausible notebook outcome | External researchers care whether the reproduction succeeded | The Outcome field in the metadata header records the team's documented outcome | The team updated Outcome to reflect reality |
@@ -75,7 +71,7 @@ The tertiary user is the broader scientific community. Their interaction is medi
 
 ---
 
-## 2.2 Selection criteria
+## Selection criteria
 
 The curation pair selects a paper that satisfies two criteria:
 
@@ -95,13 +91,13 @@ The summary the team reports for each curated paper:
 
 ---
 
-## 2.3 System operating conditions and environment
+## When and where it runs
 
 The curation pair works in either a GitHub Codespace or a local devcontainer, both producing the same `epi-sde` Python environment. Drafts live in `curation-dev/`, which is gitignored, so curation-in-progress does not pollute the repository. The team's convention is that the verifying teammate confirms the documented outcome before the implementing curator opens the submission PR.
 
-### Table VI: System operating constraints
+### System operating constraints
 
-| Constraint | Conditions and environment | Strengths and allowances | Assumptions |
+| Constraint | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Curation work happens in teams of 2 | Each paper is the responsibility of a pair, not a single curator | The team coordinates internally; the system tracks only the implementing curator (`reviewer_1`) | The two teammates can communicate directly outside the system |
 | No guessing or approximating | If a parameter or equation is not in the publication, the team must not invent one | The notebook records the absence and the consequence. `Failed` is a valid Outcome with a documented reason | The team follows this rule honestly |
@@ -112,13 +108,13 @@ The curation pair works in either a GitHub Codespace or a local devcontainer, bo
 
 ---
 
-## 2.4 Acknowledged limitations
+## What the system can’t do on its own
 
 The curator side has known gaps where the system does not provide as much support as it could.
 
-### Table VII: Acknowledged limitations
+### Acknowledged limitations
 
-| Limitation | Conditions and environment | Strengths and allowances | Assumptions |
+| Limitation | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | No curation queue enforcement | The system has no `awaiting-curation` label and no workflow that creates a curation issue when a paper is added to the team's list | The pair self-selects based on selection criteria. `CODESPACES_GUIDE.md` documents a curation-queue workflow that does not match current code | The team can manage paper assignment out of band |
 | First review is not separately recorded | The system records only `reviewer_1` (the PR author). The verifying teammate's contribution is not captured by the system | The team's pair-work convention is documented here. Future iterations could record both teammates if there is value in formalizing it | The team trusts the pair convention |

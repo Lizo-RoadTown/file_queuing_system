@@ -1,40 +1,36 @@
-# 2 Constraints
+# Constraints
 
-## 2.1 Users
+## Who uses this
 
-The system has four user classes in distinct positions relative to the work. The two primary operators are Reviewer 1 (the curator who submitted the paper) and Reviewer 2 (anyone else from the collaborator pool who performs the second review). The secondary user is the beneficiary: the downstream layer that consumes completed reviews as input for cross-organizational handoff and verification. The tertiary user is the science community at large, which benefits from public verifiability of which papers in the literature have been independently reproduced.
-
-Unlike user models that assume one operator per system, this queue exists specifically to enforce a separation between two operators on every paper. The same person may play Reviewer 1 on one paper and Reviewer 2 on another, but never both roles on the same paper. The mechanical exclusion of the curator from reviewing their own past curation is the system's central integrity claim.
-
-### 2.1.1 Primary operator: Reviewer 1 (curator)
+### Reviewer 1 (the curator)
 
 The curator is the team member who originally selected the paper from the literature, built the reproduction notebook, and submitted the folder via pull request. The system records them as `reviewer_1` in the folder's `metadata.yml`, written automatically by `validate-submission.yml` on PR merge. Reviewer 1 and "the curator" are the same actor under different names. The curator role is not a separate person who reviews someone else's submission, it is the person whose submission gets reviewed.
 
 The curator's authority on their own item is limited and conditional. `manage-queue.yml` rejects `/checkout`, `/release`, and `/approve` from the recorded `reviewer_1`. The only commands available to the curator on their own item are `/complete`, `/reject`, and `/reopen`. `/complete` and `/reject` are valid only after Reviewer 2 has raised `/dispute`. `/reopen` is valid only after the curator has used `/reject` and both parties have agreed on a path forward. In the normal happy path, the curator has no further interaction with the item after submission. The curator's authority is a fallback for the dispute branch, not a primary gate.
 
-### 2.1.2 Primary operator: Reviewer 2
+### Reviewer 2
 
 Reviewer 2 is any other team member with collaborator access on the repository, anyone except the recorded Reviewer 1 for this particular paper. The exclusion is per-item, not per-person. The same individual may play Reviewer 2 on one paper and Reviewer 1 on another.
 
 Reviewer 2 owns the decision in the normal flow. They can `/checkout` (claim), `/release` (return without decision), `/approve` (finalize as accepted), or `/dispute <reason>` (escalate to the curator). After a curator `/reject`, the reviewer can also `/reopen` to return the item to active review. `/approve` does not require curator agreement; it moves the item to `reviews/completed/` and closes the issue directly. This is the design choice that distinguishes the SDE Review Queue from review systems requiring two-sign-off on every item: most reviews complete with one signoff (Reviewer 2's), and only contested reviews invoke the second authority.
 
-### 2.1.3 Secondary user: Beneficiary
+### The downstream beneficiary
 
-The beneficiary is the downstream consumer of the queue's output. The immediate beneficiary is the Bridge layer that packages the completed review folder with per-file SHA-256 hashes for cross-organizational handoff. The mediate beneficiary is the receiving institution (a single human-in-the-loop database, or a signed handoff chain) and the Principal Investigator who runs verification engines against the package. The ultimate beneficiary is the external researcher who later queries the index by DOI to learn whether a given paper has been verified and what the outcome was.
+The beneficiary is whatever consumes the queue's output downstream. The most direct consumer is the Bridge layer that packages each completed review folder with per-file SHA-256 hashes for handoff to another organization. After that comes the receiving institution (a database or a signed handoff chain) and the Principal Investigator who runs verification engines against the package. Eventually an external researcher might query the index by DOI to find out whether a given paper has been reproduced.
 
-The beneficiary is a system, not a person. The system's needs (durable hash inputs, complete audit trail, stable identifiers) determine what the queue must guarantee at handoff. The beneficiary does not perform reviews and does not interact with the queue directly.
+The beneficiary is a system, not a person. The system needs durable hash inputs, a complete audit trail, and stable identifiers. The beneficiary does not perform reviews and does not interact with the queue directly.
 
-### 2.1.4 Tertiary user: Science community
+### The science community
 
-The tertiary user is the broader scientific community: external researchers reading the paper online, peer reviewers of related work, downstream modelers reusing the reproduced code, and anyone with an interest in the question "has this paper's model been independently reproduced, and what happened when someone tried?" The science community's interaction with the queue is mediated through the planned browser extension that queries `queue/review_log.csv` by DOI, and through the public observability surfaces (DOI dumps to Zenodo, OSF, RSS, ORCID notifications) that the receiving institution may opt to expose.
+The broader scientific community includes external researchers reading the paper online, peer reviewers of related work, modelers reusing the reproduced code, and anyone asking "has this paper's model been independently reproduced, and what happened when someone tried?" Their access to the queue happens through the planned browser extension that queries `queue/review_log.csv` by DOI, and through whatever public surfaces the receiving institution chooses to expose (Zenodo, OSF, RSS, ORCID notifications).
 
-The science community does not perform reviews, does not consume completed packages, and does not interact with the GitHub layer directly. Its interest is the existence and discoverability of verified reproductions as institutional infrastructure that outlasts any single research project.
+The science community does not perform reviews and does not interact with the GitHub layer directly. Their interest is that verified reproductions exist, are findable, and outlast any single project.
 
 ---
 
-### Table I: Reviewer 1 (curator) requirements
+### What Reviewer 1 (the curator) needs
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Authorship of the original notebook is recorded automatically | Curators are not asked to manually claim Reviewer 1 status; the system infers it from PR authorship | `validate-submission.yml` writes `reviewer_1: <PR author>` into `metadata.yml` on merge | The PR author is the actual curator, not a delegate pushing on someone else's behalf |
 | Not asked to participate in routine reviews | Curators have other technical work and cannot be on call for every second review | The happy path skips the curator entirely. `/approve` by Reviewer 2 finalizes without curator action | Most reviews are uncontested |
@@ -42,9 +38,9 @@ The science community does not perform reviews, does not consume completed packa
 | Submission shape is validated before merge | Curators may forget required files; finding out post-merge is expensive | `validate-submission.yml` runs on PR and requires `.ipynb` + `.pdf` per folder; warns on missing image | The curator is the PR author and the PR is from the same repo, not a fork |
 | Mechanical exclusion from reviewing their own past curation | The system's central integrity claim must not depend on the curator's self-discipline | `/checkout` and `/approve` reject `commenter == reviewer_1` | The curator cannot trivially control two collaborator accounts |
 
-### Table II: Reviewer 2 requirements
+### What Reviewer 2 needs
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Browseable queue of unclaimed items | Reviewers cannot remember which items are available; they need to scan | GitHub Issues filtered by the `awaiting-review-2` label. `review_log.csv` provides a machine-readable index | The reviewer has collaborator access and can view issues |
 | One-step claim with no prep | Reviewers will not invest setup time before deciding whether the work is feasible | `/checkout` triggers everything: assignment, folder move, structure creation, label change | The reviewer has pulled at least once before claiming, so the bot's commit can fast-forward locally |
@@ -55,9 +51,9 @@ The science community does not perform reviews, does not consume completed packa
 | Abandon and return to queue | Reviewers may misjudge feasibility after starting | `/release` moves the folder back to `awaiting-review-2/` and unassigns the reviewer | No partial work needs to be preserved across abandonment |
 | Return to active review after a `/reject` | A rejection may turn into a workable path once the parties talk | `/reopen` returns the item to `review-2-active` so the reviewer can update and re-`/approve` or re-`/dispute` | The reviewer and curator have agreed on a resolution path |
 
-### Table III: Beneficiary requirements
+### What the beneficiary needs
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Complete folder structure at finalization | The downstream Bridge requires a hashable artifact | At `/approve` or `/complete`, the folder contains `original/`, `review-copy/`, `notes/`, `metadata.yml`, `review_metadata.yml`. Validation runs before the move | The reviewer pushed all working files before commenting `/approve` |
 | Stable identifier | Bridge and downstream consumers index by DOI | `metadata.yml` carries `doi:`. `review_log.csv` records DOI per issue | The curator filled in the DOI at submission or through the queue template |
@@ -66,9 +62,9 @@ The science community does not perform reviews, does not consume completed packa
 | Recorded timestamps | Downstream audit requires temporal ordering | `review_metadata.yml.checkout_timestamp` (on `/checkout`), `.approval_timestamp` (on `/approve`). `notify-on-complete.yml` writes `reviewer_2_completed` (ISO date) | The Actions runner clock is trustworthy |
 | No silent re-edit of completed work | The Bridge must hash a stable artifact | Once moved to `completed/`, the folder is not edited by any workflow. Further changes leave a git commit trail | Reviewers do not force-push to main. Admins do not silently edit completed folders |
 
-### Table IV: Science community requirements
+### What the science community needs
 
-| Requirement | Conditions and environment | Strengths and allowances | Assumptions |
+| What's needed | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Public verifiability of which papers have been reproduced | External researchers want to know reproduction status before relying on a paper's results | `queue/review_log.csv` is committed in the public repository. Any reader can fetch and parse it | The repository is public or at least readable by the intended audience |
 | Findable index by DOI | The natural query is "has paper X been reproduced?" | `review_log.csv` includes a DOI column. The planned browser extension reads this column to answer DOI lookups | DOI is the canonical identifier the community uses |
@@ -78,13 +74,13 @@ The science community does not perform reviews, does not consume completed packa
 
 ---
 
-## 2.2 System operating conditions and environment
+## When and where it runs
 
-The queue runs under conditions where reviewers are geographically distributed, work asynchronously, and have only GitHub plus standard developer tools available. There is no synchronized review window, no shared workstation, and no separate identity system beyond GitHub collaborator status. The collaborator check on every slash command is the only authorization layer. The system does not depend on any single reviewer being online at any moment. Commands queue as comments and process in order.
+Reviewers are spread across timezones and work whenever they have time. There is no shared workstation and no separate login system, just GitHub collaborator status. Every slash command runs a collaborator check before doing anything. The queue does not need anyone to be online at any particular moment; slash commands queue as comments and process in order.
 
-### Table V: System operating constraints
+### Constraints on how it runs
 
-| Constraint | Conditions and environment | Strengths and allowances | Assumptions |
+| Constraint | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Reviewers geographically and temporally distributed | No team standup or shared review window. Reviewers are in different timezones | All state is durable in GitHub. Any reviewer can see the queue at any time without coordination | GitHub remains available |
 | Asynchronous and unscheduled work | Reviews happen when reviewers have time. The queue has no service-level agreement | The label and metadata are sufficient state for any reviewer to pick up an item without context handoff | Stale items are visible by their unchanged label and can be re-prioritized by the team out of band |
@@ -95,13 +91,13 @@ The queue runs under conditions where reviewers are geographically distributed, 
 
 ---
 
-## 2.3 Acknowledged limitations
+## What the system can't do on its own
 
-A system in this class cannot enforce semantic correctness of reviews or guarantee that downstream consumers will receive what they expect. The design works inside these boundaries by maximizing the artifacts that are mechanically verifiable (folder shape, reviewer identity, label transitions, timestamps) and leaving semantic verification to the human reviewer.
+The queue cannot check whether a review's reasoning is correct, and it cannot guarantee what happens after the package leaves for the downstream Bridge. It maximizes what it can check mechanically (folder shape, reviewer identity, label transitions, timestamps) and leaves the meaning-of-the-work judgment to the human reviewer.
 
-### Table VI: Acknowledged limitations
+### Limits we accept
 
-| Limitation | Conditions and environment | Strengths and allowances | Assumptions |
+| Limitation | Why it matters | How it's handled | What we assume |
 |---|---|---|---|
 | Cannot detect the intent behind a `#CHANGED:` comment | Annotation presence is mechanical, meaning is human | The system records that an annotation exists and where. Readers must judge whether the reason is sound | Reviewers write annotations honestly |
 | Cannot review changes outside notebook cells | The diff machinery, when in use, targets `.ipynb` cells only | Reviewers can edit supporting `.py` modules, but those edits are not surfaced in any automated comparison | Supporting modules are stable across review |
