@@ -84,7 +84,7 @@ jobs:
 
             // --- Read current CSV and guard against duplicates ---
             const fs = require('fs');
-            const csvPath = 'queue/pending.csv';
+            const csvPath = 'queue/review_log.csv';
             const existing = fs.existsSync(csvPath) ? fs.readFileSync(csvPath, 'utf8') : '';
 
             // Duplicate check: same issue number already present?
