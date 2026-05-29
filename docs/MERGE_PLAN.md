@@ -1,25 +1,17 @@
-# Merge Plan
+# Merge Plan (obsolete)
 
-## Fork Structure
+This document described a two-fork merge plan used during early development of the queue system. **It no longer matches how the system works.**
 
-| Fork | Contains |
-|---|---|
-| Fork 1 | Annotated reproduction notebook (`#SOURCE:`, `#CHANGED:`) |
-| Fork 2 | Diff report generated from Fork 1 via `generate_diff_report.py` |
+The previous plan had reviewers work on two parallel forks, one carrying the annotated reproduction notebook, one carrying an auto-generated diff report, and merged them to main in order. That structure was replaced on May 22, 2026 by a simpler model:
 
-## Merge Order
+- Reviewers submit a single folder via a direct pull request against `reviews/awaiting-review-2/`.
+- Reviewer 2 claims the resulting issue via `/checkout`, edits the `review-copy/` notebook in place, and finalizes with `/approve` (or escalates with `/dispute`).
+- No automated diff report is generated. The reviewer's `#CHANGED:` annotations and the git diff between `original/` and `review-copy/` serve as the record.
 
-1. Fork 1 → main
-2. Fork 2 → main (after Fork 1 is merged)
+For current submission and review procedures, see:
 
-## Before Merging
+- [CONTRIBUTING.md](../CONTRIBUTING.md), full reviewer walkthrough.
+- [README.md](../README.md), system overview and command reference.
+- [docs/PROCESS.md](PROCESS.md), the process the team agreed on.
 
-- All cells run without errors
-- All `#SOURCE:` annotations have a page number
-- All `#CHANGED:` annotations have a reason
-- PR approved by student lead
-- Do not approve your own work
-
-## Opening a PR
-
-Go to **Pull requests → New pull request**, set the base and compare branches, and request a review from the student lead.
+`scripts/generate_diff_report.py` remains in the repository but is not invoked by any current workflow. It is preserved in case the team decides to re-integrate auto-generated diff artifacts in the future.

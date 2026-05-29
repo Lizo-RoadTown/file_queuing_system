@@ -4,7 +4,7 @@
 
 **A GitHub-native system for coordinating second reviews of research manuscripts and Jupyter notebooks.**
 
-No extra software needed — everything runs through issue comments.
+No extra software needed for the queue itself, you claim and finalize reviews through issue comments on the GitHub website. To do the actual review work you will still need Git, Python, and an editor on your computer; see the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md) if you are new.
 
 ![GitHub Issues](https://img.shields.io/github/issues/Lizo-RoadTown/file_queuing_system)
 ![GitHub last commit](https://img.shields.io/github/last-commit/Lizo-RoadTown/file_queuing_system)
@@ -15,9 +15,9 @@ No extra software needed — everything runs through issue comments.
 
 ## 📌 Overview
 
-The goal is reproducibility and transparency. Every decision made during a review is recorded automatically so nobody has to ask what happened or why.
+The goal is to leave a durable trail of every second-review decision so the team does not have to ask anyone what happened. Each label change, slash command, and notebook edit is recorded automatically by GitHub.
 
-Each manuscript is tracked as a GitHub issue. Reviewers browse the queue, claim a paper, do their review, and submit — all through issue comments. The system handles the rest.
+Each manuscript that needs a second review is tracked as a GitHub issue. Reviewers browse the queue, claim an item, do the review, and submit by commenting on the issue. The system moves the files between folders and updates the labels for you.
 
 ---
 
@@ -41,11 +41,11 @@ flowchart LR
 
 | Before | Now |
 |---|---|
-| `/approve` sent item to `curator-review` | `/approve` goes **straight to completed** — no curator step needed |
+| `/approve` sent item to `curator-review` | `/approve` goes **straight to completed**, no curator step needed |
 | `/dispute` was used by the curator | `/dispute` is now used by **Reviewer 2** when they disagree with something |
 | `/complete` could be used after any review | `/complete` is now **curator-only** and only works on disputed items |
 | No way for curator to block completion | New `/reject` lets the curator **flag a dispute for further discussion** |
-| Checkout created a duplicate loose notebook | Original notebook is now **moved** into `original/` — no duplicate ever exists |
+| Checkout created a duplicate loose notebook | Original notebook is now **moved** into `original/`, no duplicate ever exists |
 
 ---
 
@@ -119,8 +119,8 @@ Each paper folder contains:
 
 | File / Folder | What it is |
 |---|---|
-| `original/` | Original notebook — moved here on `/checkout`, never edited |
-| `review-copy/` | Reviewer's working copy — edit this one |
+| `original/` | Original notebook, moved here on `/checkout`, never edited |
+| `review-copy/` | Reviewer's working copy, edit this one |
 | `notes/review_notes.md` | Your review notes |
 | `review_metadata.yml` | Tracks reviewer, timestamps, and status |
 
@@ -143,10 +143,10 @@ If you accidentally open it locally, container startup will fail by design.
 
 1. **New here?** Start with the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md)
 2. **Ready to review?** Read the [Reviewer Guide](CONTRIBUTING.md)
-3. **Adding a paper?** Drop the folder into `reviews/awaiting-review-2/` and push — an issue is created automatically
+3. **Adding a paper?** Drop the folder into `reviews/awaiting-review-2/` and push, an issue is created automatically
 
 ---
 
 ## 👥 Team Members
 
-Team member names and GitHub usernames are mapped in `team_members.yml`. If your name is not in that file the system cannot notify you or restrict commands correctly — contact the repo maintainer to be added.
+Team member names and GitHub usernames are mapped in `team_members.yml`. If your name is not in that file the system cannot notify you or restrict commands correctly, contact the repo maintainer to be added.
