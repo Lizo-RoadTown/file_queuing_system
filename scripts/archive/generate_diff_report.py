@@ -1,3 +1,20 @@
+# ARCHIVED 2026-05-29.
+#
+# This script generated a cell-by-cell DIFF_REPORT.md comparing the curator's
+# original notebook to the reviewer's review-copy on every /approve, parsing
+# #SOURCE: / #CHANGED: / #DISPUTE: annotations.
+#
+# It was wired into manage-queue.yml on 2026-04-21 ("feat: wire diff report
+# into /approve workflow") and removed on 2026-05-22 ("added a new command
+# /dispute and got rid of the extra copy") when the design switched to:
+#   - reviewer #CHANGED: annotations as the human-readable change record,
+#   - the git diff between original/ and review-copy/ as the structural record,
+#   - issue comments via /dispute as the disagreement record.
+#
+# Preserved here in case the team decides to re-integrate an auto-generated
+# diff artifact later. See scripts/archive/README.md for the wider archive
+# rationale.
+
 import sys
 import json
 import re
