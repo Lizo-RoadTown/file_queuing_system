@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor R2 as Reviewer 2
+    participant Issue as GitHub Issue
+    participant MQ as manage-queue.yml
+    participant Git as Git / Filesystem
+    participant NOC as notify-on-complete.yml
+    participant SMTP as SMTP
+
+    R2->>Issue: comment "/approve"
+    Issue->>MQ: issue_comment event
+    MQ->>MQ: verify commenter is collaborator
+    MQ->>MQ: verify commenter is the assignee
+    MQ->>MQ: verify commenter is not reviewer_1
+    MQ->>Git: validate folder shape<br/>(original/, review-copy/_rvd.ipynb,<br/>notes/, review_metadata.yml)
+    MQ->>Git: git mv folder to reviews/completed/
+    MQ->>Git: update review_metadata.yml<br/>(status, approval_timestamp, approved_by)
+    MQ->>Git: commit and push
+    MQ->>Issue: remove "review-2-active", add "complete"
+    MQ->>Issue: close issue
+    Issue->>NOC: label "complete" event
+    NOC->>Git: zip the completed folder
+    NOC->>SMTP: send package to NOTIFY_TO
+    NOC->>Issue: post final comment<br/>(names Reviewer 1 and Reviewer 2)

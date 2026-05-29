@@ -1,0 +1,31 @@
+flowchart TB
+    subgraph ENV["Environment layer"]
+        E1[GitHub Codespaces<br/>.devcontainer/devcontainer.json]
+        E2[Local devcontainer<br/>curation-dev/setup/install-env.*]
+        E3[epi-sde conda environment<br/>numpy, scipy, matplotlib, diffrax, jax]
+        E1 --> E3
+        E2 --> E3
+    end
+
+    subgraph DRAFT["Drafting layer (gitignored)"]
+        D1[curation-dev/template/<br/>curation-template.ipynb]
+        D2[curation-dev/notebooks/<br/>per-paper draft files]
+        D3[curation-dev/setup/<br/>install / rm env scripts]
+        D1 -.copy.-> D2
+    end
+
+    subgraph SUB["Submission interface"]
+        S1[reviews/awaiting-review-2/<br/>per-paper folder]
+        S2[validate-submission.yml<br/>shape check + reviewer_1 write]
+        S3[bootstrap-seed-issues.yml<br/>folder to tracking issue]
+        S4[update-queue-csv.yml<br/>issue to CSV row]
+        S5[queue/review_log.csv<br/>queryable index]
+    end
+
+    ENV --> DRAFT
+    DRAFT -.implementing curator moves finished folder.-> S1
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 --> S5
+    S5 -.handoff.-> R[Reviewer-side state machine<br/>see docs/system-design/reviewer/]

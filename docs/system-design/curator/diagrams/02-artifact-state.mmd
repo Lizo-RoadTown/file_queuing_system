@@ -1,0 +1,8 @@
+stateDiagram-v2
+    [*] --> draft_in_curation_dev : implementing curator copies template
+    draft_in_curation_dev --> draft_in_curation_dev : Task 2 + Task 3<br/>(implement, run, document)
+    draft_in_curation_dev --> awaiting_teammate_verification : implementing curator considers<br/>Outcome documented
+    awaiting_teammate_verification --> draft_in_curation_dev : teammate pushes back
+    awaiting_teammate_verification --> submitted_in_PR : teammate confirms;<br/>implementing curator opens PR
+    submitted_in_PR --> awaiting_review_2 : PR merged;<br/>reviewer-side state machine begins
+    awaiting_review_2 --> [*] : (see reviewer state machine)

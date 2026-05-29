@@ -1,0 +1,34 @@
+flowchart TD
+    G[Goal: curate a verified epidemiological SDE model<br/>and report findings]
+    G --> T1[Task 1<br/>Choose a model and figure]
+    G --> T2[Task 2<br/>Attempt to implement]
+    G --> T3[Task 3<br/>Document outcomes]
+    G --> T4[Task 4<br/>Verify outcomes with teammate<br/>(first review)]
+    G --> T5[Task 5<br/>Report findings<br/>(submit for second review)]
+
+    T1 --> T1a[1a. Find a candidate paper:<br/>DOI or comparable + infection dynamics]
+    T1 --> T1b[1b. Identify the figure to reproduce]
+    T1 --> T1c[1c. Decide which teammate implements]
+
+    T2 --> T2a[2a. Open the working environment<br/>(Codespace or local devcontainer)]
+    T2 --> T2b[2b. Copy curation-template.ipynb<br/>into curation-dev/notebooks/<paper-id>.ipynb]
+    T2 --> T2c[2c. Fill metadata header<br/>(Curator, Title, Pathogen, DOI, Figure)]
+    T2 --> T2d[2d. Implement drift_term and diffusion_term<br/>from paper equations]
+    T2 --> T2e[2e. Fill parameter values with #SOURCE: annotations]
+    T2 --> T2f[2f. Run notebook end to end;<br/>compare figure to paper]
+
+    T3 --> T3a[3a. Set Outcome (Successful or Failed)]
+    T3 --> T3b[3b. Fill Notes with anything off-paper:<br/>assumptions, missing equations, missing parameters,<br/>missing initial conditions]
+    T3 --> T3c[3c. NO guessing or approximating:<br/>document absences, do not invent values]
+
+    T4 --> T4a[4a. Teammate opens the same notebook]
+    T4 --> T4b[4b. Teammate re-runs from a clean kernel]
+    T4 --> T4c[4c. Teammate cross-checks parameters,<br/>equations, and initial conditions against paper]
+    T4 --> T4d[4d. Teammate confirms or pushes back<br/>on the documented Outcome and Notes]
+
+    T5 --> T5a[5a. Implementing curator creates<br/>reviews/awaiting-review-2/<paper-id>/]
+    T5 --> T5b[5b. Add notebook, manuscript PDF,<br/>optional output image, optional metadata.yml]
+    T5 --> T5c[5c. Commit, push branch, open PR]
+    T5 --> T5d[5d. validate-submission.yml runs:<br/>shape check, reviewer_1 written]
+    T5 --> T5e[5e. Merge PR after green check]
+    T5 --> T5f[5f. bootstrap-seed-issues.yml creates [REVIEW] issue;<br/>update-queue-csv.yml appends to review_log.csv]

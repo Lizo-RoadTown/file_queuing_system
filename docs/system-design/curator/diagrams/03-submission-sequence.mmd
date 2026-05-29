@@ -1,0 +1,32 @@
+sequenceDiagram
+    actor C as Implementing curator
+    participant PR as Pull Request
+    participant VS as validate-submission.yml
+    participant Git as Git / Filesystem
+    participant Main as main branch
+    participant BS as bootstrap-seed-issues.yml
+    participant Issue as GitHub Issue
+    participant UQ as update-queue-csv.yml
+    participant CSV as queue/review_log.csv
+
+    C->>PR: open PR with folder under<br/>reviews/awaiting-review-2/
+    PR->>VS: pull_request event
+    VS->>Git: git diff to find touched folders
+    VS->>VS: check folder shape (.ipynb + .pdf required)
+    alt shape valid
+        VS->>Git: write reviewer_1: <PR author> to metadata.yml<br/>(same-repo PR only)
+        VS->>Git: commit + push to PR branch
+        VS->>PR: check passes
+    else shape invalid
+        VS->>PR: post failure comment; check fails
+    end
+    C->>PR: merge after green check
+    PR->>Main: branch merged
+    Main->>BS: push event with reviews/awaiting-review-2/** path filter
+    BS->>BS: list folders without existing issue
+    BS->>Git: read metadata.yml for doi and reviewer_1
+    BS->>Issue: create [REVIEW] issue with awaiting-review-2 label
+    Issue->>UQ: issues.opened event
+    UQ->>UQ: parse name and doi from title and body
+    UQ->>CSV: append row name,doi,added_by,added_on,issue_number
+    UQ->>Git: commit + push to main

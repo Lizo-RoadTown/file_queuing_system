@@ -1,0 +1,31 @@
+flowchart TB
+    subgraph UI["UI layer (GitHub-native)"]
+        U1[Issue and comment box]
+        U2[PR and review form]
+        U3[Issue template:<br/>Add manuscript to queue]
+        U4[Labels and assignees]
+    end
+
+    subgraph ORCH["Orchestration layer (event-driven Actions workflows)"]
+        direction TB
+        O1[manage-queue.yml<br/>slash-command dispatcher<br/>7 commands, 5 states]
+        O2[validate-submission.yml<br/>PR shape check<br/>records reviewer_1]
+        O3[bootstrap-seed-issues.yml<br/>folders to tracking issues]
+        O4[update-queue-csv.yml<br/>issue open to CSV row]
+        O5[notify-on-complete.yml<br/>complete label to zip, email, close]
+        O6[email-completed-reviews.yml<br/>manual package re-export]
+        O7[void-issue.yml<br/>label void to close as not_planned]
+    end
+
+    subgraph DATA["Data layer (text in git)"]
+        D1[reviews/awaiting-review-2/]
+        D2[reviews/in-progress/]
+        D3[reviews/completed/]
+        D4[queue/review_log.csv<br/>queryable index]
+        D5[per-folder: metadata.yml,<br/>original/, review-copy/,<br/>notes/, review_metadata.yml]
+        D6[team_members.yml<br/>name to GitHub handle]
+    end
+
+    UI --> ORCH
+    ORCH --> DATA
+    DATA -. audit trail .-> UI
