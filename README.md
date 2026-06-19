@@ -1,115 +1,191 @@
+<div align="center">
+
 # SDE Review Queue
 
-A system for coordinating second reviews of research manuscripts and Jupyter notebooks. Built on GitHub — no extra software needed.
+**A transparent GitHub-based record of curation, first review, and second review for computational models from academic literature.**
 
-The goal is reproducibility and transparency. Every decision made during a review is recorded automatically so nobody has to ask anyone what happened or why.
+The queue runs entirely on GitHub. You claim and finalize reviews through issue comments on the GitHub website. To do the actual notebook work you still need Git, Python, and an editor on your computer; see the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md) if you are new.
+
+![GitHub Issues](https://img.shields.io/github/issues/Lizo-RoadTown/file_queuing_system)
+![GitHub last commit](https://img.shields.io/github/last-commit/Lizo-RoadTown/file_queuing_system)
+
+</div>
 
 ---
 
-## How it works
+## Overview
 
-Each manuscript that needs a second review is tracked as a GitHub issue. Reviewers browse the queue, claim a paper, do their review, and submit — all through comments on the issue. The system handles the rest automatically.
+The goal is a durable trail of every decision so the team does not have to ask anyone what happened. Each label change, slash command, and notebook edit is recorded automatically by GitHub.
+
+The work happens in three stages:
+
+1. **Curation**, a team of 2 selects a paper, implements its model in a Jupyter notebook, and documents the outcome.
+2. **First review**, the verifying teammate inside the pair re-runs the notebook and confirms (or pushes back on) the documented outcome.
+3. **Second review**, an independent reviewer from outside the team claims the resulting issue, re-runs the work, and either finalizes or escalates a dispute.
+
+Each paper is tracked as a GitHub issue. Reviewers browse the queue, claim items, do the work, and submit through issue comments. The system moves files between folders and updates labels.
+
+---
+
+## Second-Review State Machine
+
+This is the state machine the second-review side runs on. The curator side feeds into `awaiting-review-2` via a pull request.
 
 ```mermaid
-flowchart LR
-    A[awaiting-review-2] -->|/checkout| B[review-2-active]
-    B -->|/approve| C[curator-review]
-    C -->|/complete| D[complete]
-    C -->|/dispute| E[disputed]
-    E -->|/approve again| C
-    B -->|/release| A
+stateDiagram-v2
+    [*] --> awaiting_review_2 : PR merged
+    awaiting_review_2 --> review_2_active : /checkout
+    review_2_active --> awaiting_review_2 : /release
+    review_2_active --> complete : /approve
+    review_2_active --> disputed : /dispute reason
+    disputed --> complete : /complete (curator)
+    disputed --> curator_rejected : /reject reason (curator)
+    curator_rejected --> review_2_active : /reopen
+    complete --> [*] : issue closes
 ```
 
 ---
 
-## What the system does automatically
+## Slash Commands
 
-When you `/checkout` a paper:
-- Files move from `awaiting-review-2` to `in-progress`
-- A copy of the curator's notebook is created for you to work in
-- You are assigned to the issue
-
-When you `/approve`:
-- Both notebooks are compared cell by cell
-- Every line you changed is counted
-- A `DIFF_REPORT.md` is generated showing what changed and why
-- The curator is notified with a summary
-- Label changes to `curator-review`
-
-When the curator `/dispute`s:
-- Their reason is recorded in `curator_notes.md`
-- The reviewer is notified
-- Label changes to `disputed`
-- Reviewer updates their notebook and `/approve`s again
-
-When the curator `/complete`s:
-- Files move to `completed`
-- Issue closes
-
----
-## Important: Codespaces-Only Devcontainer
-
-This repository includes a devcontainer that is intentionally restricted to GitHub Codespaces.
-
-- In GitHub Codespaces: the container starts normally.
-- In local VS Code on your computer: do not choose "Reopen in Container" for this repository.
-
-If you accidentally choose it locally, container startup will fail by design.
-
-## Where Files Live
-
-## Commands
-
-| Command | Who | What happens |
-|---|---|---|
-| `/checkout` | Any reviewer | Claims the paper, creates your notebook copy |
-| `/approve` | Assigned reviewer | Generates diff report, notifies curator |
-| `/dispute reason` | Curator only | Records dispute, notifies reviewer |
-| `/complete` | Curator only | Finalizes review, closes issue |
-| `/release` | Assigned reviewer | Returns paper to the queue |
+| Command | Who | When to use | What happens |
+|---|---|---|---|
+| `/checkout` | Any reviewer except Reviewer 1 | Item is `awaiting-review-2` | Moves to `in-progress`, sets up review structure, assigns you |
+| `/approve` | Assigned Reviewer 2 | Review is complete and correct | Moves to `completed/`, closes the issue |
+| `/dispute <reason>` | Assigned Reviewer 2 | You found something to flag for the curator | Label becomes `disputed`, curator is notified |
+| `/release` | Assigned Reviewer 2 | You cannot finish the review | Returns to the queue, unassigns you |
+| `/complete` | Curator | Item is `disputed` | Finalizes, moves to `completed/`, closes the issue |
+| `/reject <reason>` | Curator | Item is `disputed` and the curator disagrees | Label becomes `curator-rejected`, issue stays open for discussion |
+| `/reopen` | Assigned reviewer or curator | Item is `curator-rejected` and both parties agree on a path forward | Returns to `review-2-active` so the reviewer can update and retry |
 
 ---
 
-## Notebook conventions
+## Normal Review Flow
 
-Two comments your team uses while working in notebooks:
+```
+1. Comment /checkout
+   item moves to reviews/in-progress/
+   review structure is created
+   you are assigned to the issue
+
+2. Open review-copy/_rvd.ipynb
+   add #SOURCE: p.X where you found each value
+   add #CHANGED: reason above anything you change
+   do not edit anything in original/
+
+3. Commit and push your work
+
+4. Comment /approve
+   item moves to reviews/completed/
+   issue closes
+```
+
+---
+
+## Dispute Flow
+
+```
+1. Comment /dispute <reason>
+   item is flagged as disputed
+   curator is notified
+
+2. Curator inspects, then comments either:
+   /complete moves the item to completed/, closes the issue
+   /reject keeps the item flagged, issue stays open for discussion
+
+3. After /reject, if the parties agree on a path forward:
+   /reopen returns the item to review-2-active
+   the reviewer can update the notebook and re-/approve or re-/dispute
+```
+
+---
+
+## Notebook Conventions
 
 | Convention | Who | What it means |
 |---|---|---|
 | `#SOURCE: p.X eq.(Y)` | Curator and reviewer | Where this value came from in the paper |
-| `#CHANGED: reason` | Reviewer | Why this line was changed |
-| `#DISPUTE: reason` | Curator | Why they disagree with the change |
+| `#CHANGED: reason` | Reviewer 2 | Why this line was changed |
 
 ---
-## Where files live
 
-Each paper moves through three folders as it progresses:
+## Where Files Live
+
+Each paper moves through three folders during second review:
 
 | Folder | Meaning |
 |---|---|
 | `reviews/awaiting-review-2/` | Needs a second reviewer |
 | `reviews/in-progress/` | Someone is actively reviewing |
-| `reviews/completed/` | Both reviews done, diff report committed |
+| `reviews/completed/` | Review done and finalized |
 
 Each paper folder contains:
 
-| File | What it is |
+| File / Folder | What it is |
 |---|---|
-| `original/` | Curator's notebook — never edited |
-| `review-copy/` | Reviewer's copy — edited during review |
-| `review_metadata.yml` | Tracks who reviewed, timestamps |
-| `DIFF_REPORT.md` | Auto-generated on /approve |
-| `curator_notes.md` | Created if curator uses /dispute |
----
+| `metadata.yml` | DOI and `reviewer_1` (curator's GitHub handle) |
+| `original/` | Original notebook, moved here on `/checkout`, never edited |
+| `review-copy/` | Reviewer's working copy, edit this one |
+| `notes/review_notes.md` | Reviewer's written notes |
+| `review_metadata.yml` | Tracks reviewer, timestamps, and status |
 
-## Getting started
-
-1. **New here?** Start with the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md)
-2. **Ready to review?** Read the [Reviewer Guide](CONTRIBUTING.md)
-3. **Adding a paper?** Drop the folder into `reviews/awaiting-review-2/` and push — an issue is created automatically
+Curators draft their work in `curation-dev/` (gitignored) before moving the finished folder into `reviews/awaiting-review-2/` and opening a PR. See the [Codespaces Guide](docs/CODESPACES_GUIDE.md) or the [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md).
 
 ---
 
-## Team members
+## Codespaces and Local Setup
 
-Team member names and GitHub usernames are mapped in `team_members.yml`. If your name is not in that file the system cannot notify you or restrict commands correctly — contact the repo maintainer to be added.
+The repository supports two working environments:
+
+- **GitHub Codespaces** (browser-based), see [docs/CODESPACES_GUIDE.md](docs/CODESPACES_GUIDE.md). The `.devcontainer/` configuration files exist but are currently empty placeholders. Until they are populated, a Codespace will not have the `epi-sde` environment pre-installed.
+- **Local conda** (your own machine), see [docs/LOCAL_SETUP_GUIDE.md](docs/LOCAL_SETUP_GUIDE.md). Use the install scripts in `curation-dev/setup/`.
+
+The devcontainer is configured for Codespaces only. If you are working in local VS Code, do not pick "Reopen in Container" when prompted.
+
+---
+
+## Adding a Paper
+
+1. Place the finished folder under `reviews/awaiting-review-2/<paper-id>/` with at least `<name>.ipynb` and `<name>.pdf` inside.
+2. Commit and push on a feature branch, then open a pull request against `main`.
+3. `validate-submission.yml` runs on the PR, checks the folder shape, and records you as `reviewer_1` in `metadata.yml`.
+4. After merge, `bootstrap-seed-issues.yml` creates a `[REVIEW]` issue with the `awaiting-review-2` label. The system is ready for an independent second reviewer.
+
+---
+
+## Documentation
+
+### Getting started
+
+- [Local Setup Guide](docs/LOCAL_SETUP_GUIDE.md), install Git, VS Code, and Python on your own machine
+- [Codespaces Guide](docs/CODESPACES_GUIDE.md), browser-based development with GitHub Codespaces
+- [Workflow Guide](docs/WORKFLOW_GUIDE.md), the git mechanics of pulling, committing, and pushing
+
+### Doing the work
+
+- [Reviewer Guide (CONTRIBUTING.md)](CONTRIBUTING.md), full walkthrough of a second review, including the dispute path
+- [Usage Overview](docs/USAGE.md), short summary of how the queue works
+- [Process](docs/PROCESS.md), the agreed pipeline from paper selection through second review
+
+### System design
+
+- [Curator side](docs/system-design/curator/), curation and first review
+- [Reviewer side](docs/system-design/reviewer/), second review
+- [Local-setup side](docs/system-design/local-setup/), the environment for local work
+- [Codespaces side](docs/system-design/codespaces/), the environment for browser-based work
+
+### Project meta
+
+- [Roadmap](docs/ROADMAP.md), what is working, in progress, and planned
+- [AI and Automation](docs/AI_AND_AUTOMATION.md), the scripted automation in the running system and the AI tooling used during development
+- [Merge Plan (deprecated)](docs/MERGE_PLAN.md), historical note pointing to the current process
+
+### Maintainers
+
+- [Setup](docs/SETUP.md), one-time setup of labels, email secrets, and organization transfer
+
+---
+
+## Team Members
+
+Team member names and GitHub usernames are in [team_members.yml](team_members.yml). If your name is not there, the system cannot notify you or recognize you in notebook content; contact the repo maintainer to be added.

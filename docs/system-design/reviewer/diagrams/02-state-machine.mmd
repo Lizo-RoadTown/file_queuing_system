@@ -1,0 +1,10 @@
+stateDiagram-v2
+    [*] --> awaiting_review_2 : PR merged<br/>(bootstrap-seed-issues.yml<br/>creates issue)
+    awaiting_review_2 --> review_2_active : /checkout<br/>(Reviewer 2; not Reviewer 1)
+    review_2_active --> awaiting_review_2 : /release<br/>(Reviewer 2 abandons)
+    review_2_active --> complete : /approve<br/>(Reviewer 2; integrity check)
+    review_2_active --> disputed : /dispute reason<br/>(Reviewer 2 escalates)
+    disputed --> complete : /complete<br/>(curator accepts)
+    disputed --> curator_rejected : /reject reason<br/>(curator rejects)
+    curator_rejected --> review_2_active : /reopen<br/>(reviewer or curator)
+    complete --> [*] : notify-on-complete.yml<br/>zips, emails, closes issue

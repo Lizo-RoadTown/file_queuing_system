@@ -1,0 +1,40 @@
+flowchart TB
+    subgraph BROWSER["Browser layer (client)"]
+        B1[GitHub web UI<br/>Code dropdown, Codespaces tab]
+        B2[Browser VS Code<br/>editor, file tree, terminal]
+        B3[Source Control panel<br/>commit and sync]
+    end
+
+    subgraph BACKEND["GitHub Codespaces backend (build orchestrator)"]
+        O1[Codespace create dispatcher]
+        O2[Image builder<br/>reads .devcontainer/devcontainer.json]
+        O3[VM allocator and lifecycle manager]
+        O4[Inactivity and quota policy]
+    end
+
+    subgraph CONTAINER["Container layer (what devcontainer.json would describe)"]
+        C1[Base image<br/>(populated: custom Dockerfile)<br/>(current: default Universal)]
+        C2[Installed features<br/>(populated: conda toolchain)]
+        C3[postCreateCommand<br/>(populated: activate epi-sde)]
+        C4[Mounted /workspaces volume<br/>persists across stops]
+    end
+
+    subgraph WORKSPACE["Workspace layer (intended environment)"]
+        W1[epi-sde conda environment<br/>numpy, scipy, matplotlib,<br/>pandas, notebook, diffrax, jax]
+        W2[Jupyter notebook server]
+        W3[git CLI authenticated to GitHub]
+    end
+
+    subgraph REPO["Repository layer (auto-cloned)"]
+        R1[/workspaces/file_queuing_system/]
+        R2[curation-dev/<br/>template, notebooks, setup]
+        R3[reviews/<br/>awaiting-review-2, in-progress, completed]
+        R4[queue/<br/>review_log.csv, pending.csv]
+        R5[.devcontainer/<br/>devcontainer.json, Dockerfile, env.yml<br/>(currently empty)]
+    end
+
+    BROWSER --> BACKEND
+    BACKEND --> CONTAINER
+    CONTAINER --> WORKSPACE
+    WORKSPACE --> REPO
+    REPO -. read by backend on build .-> BACKEND

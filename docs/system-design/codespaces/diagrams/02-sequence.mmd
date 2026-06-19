@@ -1,0 +1,37 @@
+sequenceDiagram
+    actor U as Team member
+    participant B as Browser
+    participant GH as GitHub web
+    participant CB as Codespaces backend
+    participant Cont as Container
+    participant Git as Git
+
+    U->>B: click "Create codespace on main"
+    B->>GH: POST create codespace request
+    GH->>CB: dispatch create with repo and ref
+    CB->>CB: allocate VM
+    CB->>Git: fetch .devcontainer/devcontainer.json at ref
+    alt devcontainer.json is populated
+        CB->>CB: parse config, plan image build from Dockerfile
+        CB->>Cont: build image (Dockerfile + env.yml)
+        CB->>Cont: start container from built image
+    else devcontainer.json is empty or absent
+        CB->>Cont: start container from default Universal image
+    end
+    CB->>Git: clone repository into /workspaces/<repo>
+    CB->>Cont: run postCreateCommand (if declared)
+    CB->>B: open browser VS Code attached to container
+    B->>U: show editor with file tree and terminal
+    U->>B: open notebook, run a cell
+    B->>Cont: dispatch cell execution to Jupyter kernel
+    Cont->>B: stream output back to cell
+    U->>B: pull latest in Source Control panel
+    B->>Cont: run git pull
+    Cont->>Git: fetch and fast-forward main
+    Git->>Cont: updated refs and files
+    Cont->>B: file tree refreshes
+    U->>B: edit notebook, stage, commit, sync
+    B->>Cont: run git add, commit, push
+    Cont->>Git: push commits to origin/main
+    Git->>Cont: push acknowledged
+    Cont->>B: Source Control panel clears

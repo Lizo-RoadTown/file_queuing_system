@@ -129,15 +129,17 @@ VS Code's **Sync Changes** button does both commit and push together, which is w
 
 ## Part 4: Finishing Your Review
 
-When you're happy with your review:
+When you have finished reviewing, go back to the issue on GitHub and comment one of these:
 
-1. Go back to the issue on GitHub
-2. Comment `/approve`
+| Comment | When to use it | What happens |
+|---|---|---|
+| `/approve` | Your review is complete and you agree with the notebook (with your noted changes). | Files move to `reviews/completed/`, issue closes, email sent if configured. |
+| `/dispute <reason>` | You found something to flag for the curator to weigh in on. | Label changes to `disputed`. Curator is notified. You stay assigned; wait for their response. |
+| `/release` | You cannot finish and want to hand it back to the queue. | Files return to `reviews/awaiting-review-2/`. You are unassigned. |
 
-The system handles the rest:
-- Moves the files to `reviews/completed/`
-- Closes the issue
-- Sends an email notification (if configured)
+`/dispute` and `/reject` require a reason. Example: `/dispute the paper on p.5 says gamma = 0.14, but the curator's value is 0.1, want a second opinion before I change it`.
+
+If you used `/dispute`, the curator (Reviewer 1) will respond with either `/complete` (they accept your review, issue closes) or `/reject <reason>` (they reject it, issue stays open for discussion in comments). There is no automated next step after `/reject`; the two of you negotiate the resolution.
 
 **You're done!**
 
@@ -222,7 +224,7 @@ git push
 
 If you are working from a **fork** of the main repository (your own copy on GitHub rather than a direct clone), follow this walkthrough to submit your changes.
 
-### Step 1: One-time setup — add the upstream remote
+### Step 1: One-time setup, add the upstream remote
 
 You only need to do this once. "Upstream" means the original repository, not your fork.
 
@@ -258,7 +260,7 @@ git push origin your-branch-name
 
 ### Step 4: Open a pull request
 
-**Option A — GitHub CLI (if you have `gh` installed):**
+**Option A, GitHub CLI (if you have `gh` installed):**
 
 ```bash
 gh pr create \
@@ -271,9 +273,9 @@ gh pr create \
 
 To check if `gh` is installed: `gh --version`
 
-**Option B — in the browser:**
+**Option B, in the browser:**
 
-After pushing, go to your fork on GitHub. You will see a yellow banner saying **"Compare & pull request"** — click it, fill in the title and description, and click **Open pull request**.
+After pushing, go to your fork on GitHub. You will see a yellow banner saying **"Compare & pull request"**, click it, fill in the title and description, and click **Open pull request**.
 
 ---
 
@@ -287,7 +289,7 @@ If you run `git merge` without `--no-edit`, Git may open a text editor called **
   # Please enter the commit message...
 ```
 
-The default message is fine — you do not need to type anything. Exit nano like this:
+The default message is fine, you do not need to type anything. Exit nano like this:
 
 | Key | What it does |
 |---|---|
@@ -295,4 +297,4 @@ The default message is fine — you do not need to type anything. Exit nano like
 | `Enter` | Confirm the filename |
 | `Ctrl+X` | Exit nano |
 
-> **Do not press `Ctrl+C`** — that cancels without saving and will abort the merge commit.
+> **Do not press `Ctrl+C`**, that cancels without saving and will abort the merge commit.

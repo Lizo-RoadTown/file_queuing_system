@@ -1,0 +1,39 @@
+sequenceDiagram
+    actor R2 as Reviewer 2
+    actor R1 as Reviewer 1 (curator)
+    participant Issue as GitHub Issue
+    participant MQ as manage-queue.yml
+    participant Git as Git / Filesystem
+
+    R2->>Issue: comment "/dispute <reason>"
+    Issue->>MQ: issue_comment event
+    MQ->>MQ: verify commenter is the assignee
+    MQ->>MQ: require non-empty reason
+    MQ->>Git: read reviewer_1 from metadata.yml
+    MQ->>Issue: remove "review-2-active", add "disputed"
+    MQ->>Issue: post comment notifying @reviewer_1
+    Note over R1: Curator inspects review-copy/ vs original/<br/>off-platform
+    alt curator agrees with Reviewer 2
+        R1->>Issue: comment "/complete"
+        Issue->>MQ: issue_comment event
+        MQ->>MQ: verify commenter is reviewer_1
+        MQ->>Git: move folder to reviews/completed/
+        MQ->>Git: update review_metadata.yml
+        MQ->>Issue: remove "disputed", add "complete"
+        MQ->>Issue: close issue
+        Note over Issue: notify-on-complete.yml fires<br/>(same as happy path)
+    else curator rejects
+        R1->>Issue: comment "/reject <reason>"
+        Issue->>MQ: issue_comment event
+        MQ->>MQ: verify commenter is reviewer_1
+        MQ->>MQ: require non-empty reason
+        MQ->>Issue: remove "disputed", add "curator-rejected"
+        Note over Issue: issue stays open for discussion
+        opt parties agree on a path forward
+            R2->>Issue: comment "/reopen"<br/>(or R1 comments it)
+            Issue->>MQ: issue_comment event
+            MQ->>MQ: verify commenter is assignee or reviewer_1
+            MQ->>Issue: remove "curator-rejected", add "review-2-active"
+            Note over R2: Reviewer updates notebook,<br/>commits, re-/approves or re-/disputes
+        end
+    end

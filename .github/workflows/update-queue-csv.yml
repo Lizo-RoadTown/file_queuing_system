@@ -1,0 +1,119 @@
+name: Update Queue CSV
+
+# Appends a row to queue/pending.csv whenever a new review issue is opened.
+# Handles both [REVIEW] issues (auto-seeded by bootstrap-seed-issues) and
+# [QUEUE] issues (user-submitted via the issue form template).
+
+on:
+  issues:
+    types: [opened]
+
+# Serialize runs so concurrent issue-creates don't race on the CSV commit.
+concurrency:
+  group: update-queue-csv
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  append-csv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Always work from the latest main so concurrent runs don't conflict.
+          ref: main
+          fetch-depth: 1
+
+      - name: Append paper to queue/pending.csv
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const labels = (issue.labels || []).map(l => l.name);
+
+            // Only act on issues labelled awaiting-review-2, or titled [REVIEW]
+            // or [QUEUE].  Ignore everything else (e.g. bug reports).
+            const isReview = issue.title.startsWith('[REVIEW]');
+            const isQueue  = issue.title.startsWith('[QUEUE]');
+            const hasLabel = labels.includes('awaiting-review-2');
+
+            if (!isReview && !isQueue && !hasLabel) {
+              core.info('Not a review/queue issue — skipping.');
+              return;
+            }
+
+            const body = issue.body || '';
+
+            // --- Extract name ---
+            let name = '';
+            if (isReview) {
+              // "[REVIEW] Paper Name"  →  "Paper Name"
+              name = issue.title.replace(/^\[REVIEW\]\s*/, '').trim();
+            } else if (isQueue) {
+              // "[QUEUE] Paper Name"  →  "Paper Name"
+              name = issue.title.replace(/^\[QUEUE\]\s*/, '').trim();
+            } else {
+              // Fallback: try to parse the Short name form field from the body
+              const m = body.match(/###\s*Short name\s*\n+([^\n#]+)/i);
+              name = m ? m[1].trim() : issue.title.trim();
+            }
+
+            // --- Extract DOI / URL ---
+            let doi = '(unknown)';
+            // [REVIEW] format: **DOI:** value
+            const reviewDoi = body.match(/\*\*DOI:\*\*\s*(.+)/);
+            if (reviewDoi && reviewDoi[1].trim() !== '(unknown)') {
+              doi = reviewDoi[1].trim();
+            }
+            // [QUEUE] / form format: ### DOI or URL\n\nvalue
+            if (doi === '(unknown)') {
+              const formDoi = body.match(/###\s*DOI or URL\s*\n+([^\n#]+)/i);
+              if (formDoi && formDoi[1].trim() !== '_No response_') {
+                doi = formDoi[1].trim();
+              }
+            }
+
+            const addedBy   = issue.user.login;
+            const addedOn   = issue.created_at.substring(0, 10); // YYYY-MM-DD
+            const issueNum  = issue.number;
+
+            core.info(`name="${name}" doi="${doi}" by=${addedBy} on=${addedOn} issue=#${issueNum}`);
+
+            // --- Read current CSV and guard against duplicates ---
+            const fs = require('fs');
+            const csvPath = 'queue/review_log.csv';
+            const existing = fs.existsSync(csvPath) ? fs.readFileSync(csvPath, 'utf8') : '';
+
+            // Duplicate check: same issue number already present?
+            if (existing.split('\n').some(row => {
+              const cols = row.split(',');
+              return cols.length >= 5 && cols[4].trim() === String(issueNum);
+            })) {
+              core.info(`Issue #${issueNum} already in CSV — skipping.`);
+              return;
+            }
+
+            // Escape any commas or quotes in fields (simple CSV safe-encode)
+            const esc = v => v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v;
+            const newRow = [esc(name), esc(doi), esc(addedBy), addedOn, issueNum].join(',');
+
+            const updated = existing.trimEnd() + '\n' + newRow + '\n';
+            fs.writeFileSync(csvPath, updated);
+            core.info(`Appended: ${newRow}`);
+
+      - name: Commit and push CSV update
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add queue/review_log.csv
+          # Only commit if there's a real change
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git pull --rebase origin main
+            git commit -m "Queue log: add entry for issue #${{ github.event.issue.number }}"
+            git push origin main
+          fi

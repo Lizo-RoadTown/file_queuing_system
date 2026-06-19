@@ -23,3 +23,6 @@ Thumbs.db
 
 # Local curation workspace
 /curation-dev/
+
+# Local reference docs (not for distribution)
+/ignore guidance docs/

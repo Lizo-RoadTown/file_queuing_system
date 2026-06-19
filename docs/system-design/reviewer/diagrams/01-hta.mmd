@@ -1,0 +1,23 @@
+flowchart TD
+    G[Goal: produce a verified, traceable<br/>verified review record for one paper]
+    G --> T1[Task 1<br/>Claim work]
+    G --> T2[Task 2<br/>Perform review and decide]
+    G --> T3[Task 3<br/>Participate in dispute resolution]
+
+    T1 --> T1a[1a. Browse awaiting-review-2 issues]
+    T1 --> T1b[1b. Verify not Reviewer 1 for this item]
+    T1 --> T1c[1c. Comment /checkout]
+    T1 --> T1d[1d. System assigns, moves folder, creates structure]
+
+    T2 --> T2a[2a. Pull files locally]
+    T2 --> T2b[2b. Open review-copy/_rvd.ipynb, re-run cells]
+    T2 --> T2c[2c. Annotate #CHANGED and optionally #SOURCE]
+    T2 --> T2d[2d. Fill notes/review_notes.md]
+    T2 --> T2e[2e. Commit and push]
+    T2 --> T2f[2f. Comment /approve, /dispute reason, or /release]
+
+    T3 --> T3a[3a. Wait for curator response after /dispute]
+    T3 --> T3b[3b. If /complete: nothing further required]
+    T3 --> T3c[3c. If /reject: discuss with curator in issue comments]
+    T3 --> T3d[3d. If path agreed: /reopen to return to active review]
+    T3 --> T3e[3e. Update notebook, push, re-/approve or re-/dispute]
