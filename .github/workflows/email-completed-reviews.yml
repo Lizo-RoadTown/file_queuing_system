@@ -1,18 +1,39 @@
-name: Email Completed Reviews (One Per Package)
+name: Email Completed Reviews
+
+# Manual backfill: zip and email every completed review folder that has not
+# already been sent. "Already sent" means the folder's review_metadata.yml
+# carries an `emailed_to_recipient_on:` key with a non-null value, written
+# either by this workflow or by notify-on-complete.yml.
+#
+# Use this to sweep up legacy items that were never sent through
+# notify-on-complete.yml (for example, pre-workflow folders that have no
+# associated issue and therefore cannot be caught by auto-label-completed.yml).
+#
+# This workflow is manual-only. Hand-committed completions for folders that
+# DO have an associated issue are caught automatically by
+# auto-label-completed.yml, which applies the `complete` label and lets
+# notify-on-complete.yml handle the email and the marker write.
 
 on:
   workflow_dispatch:
 
+concurrency:
+  group: email-completed-reviews
+  cancel-in-progress: false
+
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   email-packages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
-      - name: Zip and email each completed review
+      - name: Zip and email each unsent completed review
         env:
           SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -22,7 +43,8 @@ jobs:
           NOTIFY_TO: ${{ secrets.NOTIFY_TO }}
         run: |
           python3 << 'EOF'
-          import os, smtplib, zipfile
+          import os, re, smtplib, zipfile, sys
+          from datetime import datetime
           from email.message import EmailMessage
           from email.utils import formataddr
 
@@ -36,13 +58,52 @@ jobs:
           completed_dir = 'reviews/completed'
           folders = sorted(os.listdir(completed_dir))
 
-          sent = []
+          today = datetime.utcnow().strftime('%Y-%m-%d')
+          sent, skipped = [], []
+
+          def has_email_marker(rmeta_path):
+              if not os.path.exists(rmeta_path):
+                  return False
+              with open(rmeta_path, 'r', encoding='utf-8') as f:
+                  for line in f:
+                      if line.strip().startswith('emailed_to_recipient_on:'):
+                          value = line.split(':', 1)[1].strip().strip("'\"")
+                          if value and value.lower() not in ('null', 'none', ''):
+                              return True
+              return False
+
+          def write_email_marker(rmeta_path):
+              line = f'emailed_to_recipient_on: {today}\n'
+              if os.path.exists(rmeta_path):
+                  with open(rmeta_path, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  if re.search(r'^emailed_to_recipient_on:.*$', content, flags=re.M):
+                      content = re.sub(
+                          r'^emailed_to_recipient_on:.*$',
+                          f'emailed_to_recipient_on: {today}',
+                          content,
+                          flags=re.M,
+                      )
+                  else:
+                      if content and not content.endswith('\n'):
+                          content += '\n'
+                      content += line
+              else:
+                  content = line
+              with open(rmeta_path, 'w', encoding='utf-8') as f:
+                  f.write(content)
+
           for folder_name in folders:
               folder_path = os.path.join(completed_dir, folder_name)
               if not os.path.isdir(folder_path):
                   continue
 
-              # Zip the folder
+              rmeta_path = os.path.join(folder_path, 'review_metadata.yml')
+              if has_email_marker(rmeta_path):
+                  skipped.append(folder_name)
+                  print(f'- Skipped (already emailed): {folder_name}')
+                  continue
+
               zip_path = f'/tmp/{folder_name}.zip'
               with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
                   for root, dirs, files in os.walk(folder_path):
@@ -51,7 +112,6 @@ jobs:
                           arcname = os.path.relpath(file_path, completed_dir)
                           zf.write(file_path, arcname)
 
-              # Compose email
               msg = EmailMessage()
               msg['Subject'] = f'[SDE Review Complete] {folder_name}'
               msg['From']    = formataddr(('SDE Review Queue', from_email))
@@ -77,8 +137,24 @@ jobs:
                   s.login(login, password)
                   s.send_message(msg)
 
+              write_email_marker(rmeta_path)
               sent.append(folder_name)
-              print(f'✓ Sent: {folder_name}')
+              print(f'+ Sent: {folder_name}')
 
-          print(f'\nDone — {len(sent)} email(s) sent.')
+          print(f'\nDone. {len(sent)} sent, {len(skipped)} already-emailed skipped.')
+          if not sent:
+              sys.exit(0)
           EOF
+
+      - name: Commit and push email markers
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reviews/completed/
+          if git diff --cached --quiet; then
+            echo "No marker changes to commit."
+          else
+            git pull --rebase origin main
+            git commit -m "Mark completed folders as emailed_to_recipient"
+            git push origin main
+          fi

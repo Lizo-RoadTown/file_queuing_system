@@ -1,0 +1,174 @@
+name: Auto-Label Hand-Committed Completions
+
+# Catches the case where a folder is hand-committed into reviews/completed/
+# without going through the /approve or /complete slash-command flow.
+#
+# When a human pushes a new folder into reviews/completed/, this workflow
+# finds the matching issue (by folder basename in the issue body marker or
+# the issue title), updates the marker to point to the completed path, and
+# applies the `complete` label.
+#
+# That label transition triggers notify-on-complete.yml, which handles the
+# zip, email, marker write, completion comment, and issue close, exactly
+# as if the user had typed /complete on the issue.
+#
+# This workflow does NOT email anything itself. It only routes hand-commits
+# back into the normal completion path.
+#
+# Folders without any associated issue (legacy pre-workflow items) are
+# logged as warnings here and have to be backfilled manually via
+# email-completed-reviews.yml.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'reviews/completed/**'
+
+concurrency:
+  group: auto-label-completed
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  apply-complete-label:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 50
+
+      - name: Detect new folders and apply complete label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { execSync } = require('child_process');
+
+            const beforeSha = context.payload.before;
+            const afterSha  = context.payload.after;
+
+            // Find files added under reviews/completed/ in this push.
+            let diffOutput = '';
+            try {
+              if (beforeSha && beforeSha !== '0000000000000000000000000000000000000000') {
+                diffOutput = execSync(
+                  `git diff --diff-filter=A --name-only ${beforeSha} ${afterSha} -- reviews/completed/`
+                ).toString();
+              } else {
+                // First push or shallow history; fall back to HEAD.
+                diffOutput = execSync(
+                  `git show --diff-filter=A --name-only --pretty=format: HEAD -- reviews/completed/`
+                ).toString();
+              }
+            } catch (e) {
+              core.warning(`Could not diff push range: ${e.message}`);
+              return;
+            }
+
+            const addedFiles = diffOutput.split('\n').filter(Boolean);
+            const candidateFolders = new Set();
+            for (const f of addedFiles) {
+              const parts = f.split('/');
+              if (parts[0] === 'reviews' && parts[1] === 'completed' && parts.length >= 3) {
+                candidateFolders.add(parts[2]);
+              }
+            }
+
+            if (candidateFolders.size === 0) {
+              core.info('No new completed folders detected in this push.');
+              return;
+            }
+
+            core.info(`New folders in reviews/completed/: ${[...candidateFolders].join(', ')}`);
+
+            for (const folder of candidateFolders) {
+              // Find an issue whose body marker references this folder by basename,
+              // or whose title contains the folder name.
+              // Search across both open and closed issues so we can handle re-opens too.
+              const issues = await github.paginate(github.rest.issues.listForRepo, {
+                ...context.repo,
+                state: 'all',
+                per_page: 100,
+              });
+
+              let matched = null;
+              const folderRegex = new RegExp(
+                `<!--\\s*(?:folder|path):\\s*reviews/(?:awaiting-review-2|in-progress|completed)/${
+                  folder.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')
+                }(?:[/ ]|$)`,
+                'i'
+              );
+
+              for (const issue of issues) {
+                if (issue.pull_request) continue;
+                const body = issue.body || '';
+                const title = issue.title || '';
+                if (folderRegex.test(body) || title === folder ||
+                    title.endsWith(` ${folder}`) || title.includes(`[${folder}]`) ||
+                    title.includes(folder)) {
+                  matched = issue;
+                  break;
+                }
+              }
+
+              if (!matched) {
+                core.warning(
+                  `No issue found for completed folder "${folder}". ` +
+                  `Trigger the Email Completed Reviews workflow manually to send this one.`
+                );
+                continue;
+              }
+
+              const labels = (matched.labels || []).map(l => l.name);
+              if (labels.includes('complete')) {
+                core.info(`Issue #${matched.number} is already labeled complete; skipping.`);
+                continue;
+              }
+
+              // Update the marker in the issue body so notify-on-complete.yml
+              // does not try to git mv a folder that is already in completed/.
+              const completedPath = `reviews/completed/${folder}`;
+              let newBody = matched.body || '';
+              const folderMarker = /<!--\s*folder:\s*.+?-->/;
+              const pathMarker   = /<!--\s*path:\s*.+?-->/;
+              if (folderMarker.test(newBody)) {
+                newBody = newBody.replace(folderMarker, `<!-- folder: ${completedPath} -->`);
+              } else if (pathMarker.test(newBody)) {
+                newBody = newBody.replace(pathMarker, `<!-- path: ${completedPath} -->`);
+              } else {
+                newBody = (newBody ? newBody + '\n\n' : '') + `<!-- folder: ${completedPath} -->`;
+              }
+
+              if (newBody !== matched.body) {
+                await github.rest.issues.update({
+                  ...context.repo,
+                  issue_number: matched.number,
+                  body: newBody,
+                });
+              }
+
+              if (matched.state === 'closed') {
+                // Reopen so notify-on-complete.yml can act on the label change.
+                await github.rest.issues.update({
+                  ...context.repo,
+                  issue_number: matched.number,
+                  state: 'open',
+                });
+              }
+
+              await github.rest.issues.addLabels({
+                ...context.repo,
+                issue_number: matched.number,
+                labels: ['complete'],
+              });
+
+              core.info(
+                `Applied complete label to issue #${matched.number} (${matched.title}) ` +
+                `for folder ${folder}. notify-on-complete.yml will handle the email.`
+              );
+            }

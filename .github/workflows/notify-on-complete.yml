@@ -121,6 +121,53 @@ jobs:
             The complete review package is attached.
           attachments: /tmp/${{ steps.resolve.outputs.item_name }}.zip
 
+      - name: Mark folder as emailed
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { execSync } = require('child_process');
+
+            const itemPath = '${{ steps.resolve.outputs.item_path }}';
+            const itemType = '${{ steps.resolve.outputs.item_type }}';
+
+            if (itemType !== 'folder') {
+              core.info('Not a folder; skipping email marker.');
+              return;
+            }
+
+            const rmetaPath = path.join(itemPath, 'review_metadata.yml');
+            const today = new Date().toISOString().slice(0, 10);
+
+            let yml = '';
+            if (fs.existsSync(rmetaPath)) {
+              yml = fs.readFileSync(rmetaPath, 'utf8');
+            }
+
+            if (/^emailed_to_recipient_on:/m.test(yml)) {
+              yml = yml.replace(
+                /^emailed_to_recipient_on:.*$/m,
+                `emailed_to_recipient_on: ${today}`
+              );
+            } else {
+              if (yml && !yml.endsWith('\n')) yml += '\n';
+              yml += `emailed_to_recipient_on: ${today}\n`;
+            }
+
+            fs.writeFileSync(rmetaPath, yml);
+
+            execSync('git config user.name "github-actions[bot]"');
+            execSync('git config user.email "41898282+github-actions[bot]@users.noreply.github.com"');
+            execSync(`git add "${rmetaPath}"`);
+            const pending = execSync('git status --short').toString().trim();
+            if (pending) {
+              const itemName = path.basename(itemPath);
+              execSync(`git commit -m "Mark ${itemName}: emailed_to_recipient_on=${today}"`);
+              execSync('git push');
+            }
+
       - name: Notify reviewers + close issue
         if: success()
         uses: actions/github-script@v7
