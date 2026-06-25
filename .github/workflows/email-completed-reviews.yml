@@ -1,21 +1,27 @@
 name: Email Completed Reviews
 
-# Manual backfill: zip and email every completed review folder that has not
-# already been sent. "Already sent" means the folder's review_metadata.yml
-# carries an `emailed_to_recipient_on:` key with a non-null value, written
-# either by this workflow or by notify-on-complete.yml.
+# Manual backfill: zip and email completed review folders that have not
+# been sent. "Already sent" means the folder's review_metadata.yml has
+# `emailed_to_recipient_on:` with a non-null value, written either here
+# or by notify-on-complete.yml.
 #
-# Use this to sweep up legacy items that were never sent through
-# notify-on-complete.yml (for example, pre-workflow folders that have no
-# associated issue and therefore cannot be caught by auto-label-completed.yml).
+# Two modes:
+#   - workflow_dispatch with no input: process every unsent folder.
+#   - workflow_dispatch with folder_name input: process only that folder.
 #
-# This workflow is manual-only. Hand-committed completions for folders that
-# DO have an associated issue are caught automatically by
-# auto-label-completed.yml, which applies the `complete` label and lets
-# notify-on-complete.yml handle the email and the marker write.
+# Hand-committed completions for folders that DO have an associated issue
+# are caught automatically by auto-label-completed.yml; this workflow is
+# the fallback for legacy items with no issue, or when a single folder
+# needs to be re-sent.
 
 on:
   workflow_dispatch:
+    inputs:
+      folder_name:
+        description: 'Folder under reviews/completed/ to send. Leave empty to process every unsent folder.'
+        required: false
+        type: string
+        default: ''
 
 concurrency:
   group: email-completed-reviews
@@ -41,6 +47,7 @@ jobs:
           SMTP_KEY: ${{ secrets.SMTP_KEY }}
           FROM_EMAIL: ${{ secrets.FROM_EMAIL }}
           NOTIFY_TO: ${{ secrets.NOTIFY_TO }}
+          INPUT_FOLDER: ${{ inputs.folder_name }}
         run: |
           python3 << 'EOF'
           import os, re, smtplib, zipfile, sys
@@ -54,9 +61,17 @@ jobs:
           password    = os.environ['SMTP_KEY']
           from_email  = os.environ['FROM_EMAIL']
           to_email    = os.environ['NOTIFY_TO']
+          input_folder = (os.environ.get('INPUT_FOLDER') or '').strip()
 
           completed_dir = 'reviews/completed'
-          folders = sorted(os.listdir(completed_dir))
+
+          if input_folder:
+              if not os.path.isdir(os.path.join(completed_dir, input_folder)):
+                  print(f'ERROR: folder not found: {completed_dir}/{input_folder}')
+                  sys.exit(2)
+              folders = [input_folder]
+          else:
+              folders = sorted(os.listdir(completed_dir))
 
           today = datetime.utcnow().strftime('%Y-%m-%d')
           sent, skipped = [], []
