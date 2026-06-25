@@ -10,7 +10,11 @@ The queue runs end to end on GitHub. All six slash commands are live: `/checkout
 
 Issue tracking is automatic. `bootstrap-seed-issues.yml` creates a `[REVIEW]` issue whenever a folder appears under `reviews/awaiting-review-2/` on main. `update-queue-csv.yml` appends every new issue to `queue/review_log.csv`. `validate-submission.yml` checks PR shape and records the PR author as Reviewer 1.
 
-Completed reviews are packaged and emailed automatically by `notify-on-complete.yml` (zip + SMTP send) when an issue gains the `complete` label, provided the SMTP secrets are configured. A manual fallback workflow `email-completed-reviews.yml` is also available via the Actions tab for re-sending packages.
+Completed reviews are packaged and emailed automatically by `notify-on-complete.yml` (zip + SMTP send) when an issue gains the `complete` label, provided the SMTP secrets are configured. The workflow writes `emailed_to_recipient_on: <date>` into the folder's `review_metadata.yml` after a successful send.
+
+Hand-committed completions (folders pushed directly into `reviews/completed/` without going through `/approve` or `/complete`) are caught by `auto-label-completed.yml`, which finds the matching issue and applies the `complete` label so `notify-on-complete.yml` handles the email.
+
+`email-completed-reviews.yml` is the manual backfill, available via the Actions tab. It skips folders that already carry the `emailed_to_recipient_on` marker and accepts an optional `folder_name` input for sending a single folder. `scripts/email_completed_review.py` is the local fallback for when Actions cannot run.
 
 The system has run in practice. Several papers have moved through the full happy path. At least one paper (Witbooi_Malaria) went through the dispute branch and was resolved by the curator with `/complete`.
 

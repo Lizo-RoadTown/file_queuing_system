@@ -123,5 +123,5 @@ If you move this repository to a GitHub organization later:
 
 - **No servers or databases.** Everything runs on GitHub: storage, authentication, and automation (via GitHub Actions).
 - **State lives in two places.** The issue label is the source of truth for "what stage this paper is in." The folder's `metadata.yml` is the source of truth for "who curated this paper" and `review_metadata.yml` is the source of truth for "who reviewed it and when."
-- **Six commands drive five states.** See [README.md](../README.md) for the command and state reference, and [docs/system-design/02_methodology.md](system-design/02_methodology.md) for the formal state machine.
+- **Seven commands drive five states.** See [README.md](../README.md) for the command and state reference, and [docs/system-design/reviewer/02_methodology.md](system-design/reviewer/02_methodology.md) for the formal state machine.
 - **The queue index lives in `queue/review_log.csv`.** Every new issue is appended to it by `update-queue-csv.yml`. This file is intended to be machine-readable for downstream consumers (e.g., a planned browser extension that checks whether a given paper has been curated).

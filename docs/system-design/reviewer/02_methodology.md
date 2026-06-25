@@ -184,7 +184,7 @@ sequenceDiagram
 
 ## Layered architecture
 
-The system separates into three layers, each replaceable without touching the layers above or below. The UI layer is GitHub's native issue interface and comment box: what reviewers touch. The orchestration layer is seven Actions workflows that respond to events (PR open, push to main, issue comment, label change, issue open). The data layer is the filesystem queue under `reviews/`, the index `queue/review_log.csv`, and per-folder metadata files. There is no separate logic layer in the currently active code path: business rules live inside the orchestration workflows themselves. One Python helper, the cell-by-cell notebook diff generator, lives in `scripts/archive/` and is no longer invoked.
+The system separates into three layers, each replaceable without touching the layers above or below. The UI layer is GitHub's native issue interface and comment box: what reviewers touch. The orchestration layer is eight Actions workflows that respond to events (PR open, push to main, issue comment, label change, issue open). The data layer is the filesystem queue under `reviews/`, the index `queue/review_log.csv`, and per-folder metadata files. There is no separate logic layer in the currently active code path: business rules live inside the orchestration workflows themselves. One Python helper, the cell-by-cell notebook diff generator, lives in `scripts/archive/` and is no longer invoked. A local helper script for sending a single completed review by hand lives at `scripts/email_completed_review.py`.
 
 ### Operating-state layered architecture
 
@@ -203,8 +203,9 @@ flowchart TB
         O2[validate-submission.yml<br/>PR shape check<br/>records reviewer_1]
         O3[bootstrap-seed-issues.yml<br/>folders to tracking issues]
         O4[update-queue-csv.yml<br/>issue open to CSV row]
-        O5[notify-on-complete.yml<br/>complete label to zip, email, close]
-        O6[email-completed-reviews.yml<br/>manual package re-export]
+        O5[notify-on-complete.yml<br/>complete label to zip, email, close,<br/>write emailed_to_recipient_on marker]
+        O6[auto-label-completed.yml<br/>push to completed/ by human to<br/>complete label on matching issue]
+        O7[email-completed-reviews.yml<br/>manual backfill; skips marked folders]
         O7[void-issue.yml<br/>label void to close as not_planned]
     end
 

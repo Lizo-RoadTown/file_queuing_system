@@ -20,8 +20,9 @@ Slash commands are dispatched by `manage-queue.yml`, an Actions workflow whose b
 | `validate-submission.yml` | Pull request touching `reviews/**` | Diffs the PR; checks each touched folder for `.ipynb` + `.pdf`; warns on missing image; writes `reviewer_1: <PR author>` into `metadata.yml` on same-repo PRs |
 | `bootstrap-seed-issues.yml` | Push to `main` touching `reviews/awaiting-review-2/**`, or manual `workflow_dispatch` | Scans `reviews/awaiting-review-2/` for folders without an existing tracking issue; reads each folder's `metadata.yml`; creates a `[REVIEW]` issue with the `awaiting-review-2` label and a `<!-- folder: ... -->` marker |
 | `update-queue-csv.yml` | Issue opened | Parses the issue title and body for paper name and DOI; appends a row to `queue/review_log.csv`; commits and pushes |
-| `notify-on-complete.yml` | Issue gains the `complete` label | Moves the folder to `reviews/completed/` if not already there; writes `reviewer_2` to `metadata.yml`; zips the folder; sends the package via SMTP; posts a final comment naming both reviewers; closes the issue |
-| `email-completed-reviews.yml` | Manual `workflow_dispatch` | Zips each completed folder and emails it |
+| `notify-on-complete.yml` | Issue gains the `complete` label | Moves the folder to `reviews/completed/` if not already there; writes `reviewer_2` to `metadata.yml`; zips the folder; sends the package via SMTP; writes `emailed_to_recipient_on` into `review_metadata.yml`; posts a final comment naming both reviewers; closes the issue |
+| `auto-label-completed.yml` | Push to `main` on `reviews/completed/**` by a non-bot actor | Finds the matching issue, updates its folder marker, reopens if closed, and applies the `complete` label so `notify-on-complete.yml` handles the rest |
+| `email-completed-reviews.yml` | `workflow_dispatch` (optional `folder_name` input) | Backfill: emails any completed folder without the `emailed_to_recipient_on` marker, or only the named folder. Idempotent on re-runs |
 | `void-issue.yml` | Issue gains the `void` label | Closes the issue without moving files or sending notifications |
 
 ### Boundaries of this layer

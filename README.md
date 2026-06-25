@@ -183,6 +183,8 @@ The devcontainer is configured for Codespaces only. If you are working in local 
 ### Maintainers
 
 - [Setup](docs/SETUP.md), one-time setup of labels, email secrets, and organization transfer
+- [Email Setup](docs/EMAIL_SETUP.md), step-by-step SMTP configuration for the notification workflows (Gmail, Outlook, SendGrid, Mailgun, generic)
+- [Workflows](docs/WORKFLOWS.md), reference for every GitHub Actions workflow: triggers, inputs, outputs, secrets, permissions, and flow diagrams
 
 ---
 
