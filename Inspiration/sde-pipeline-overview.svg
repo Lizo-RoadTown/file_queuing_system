@@ -1,0 +1,168 @@
+<svg width="100%" viewBox="0 0 1040 920" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>UF SDE Curation Pipeline — Liz Osborn's scope (undergrad curation through cross-org handoff to PI)</title>
+<desc>Pipeline diagram covering the portion of the system Liz Osborn is responsible for: the undergrad curation workspace, the auto-transfer bridge, and the signed cross-organizational handoff to whatever system the PI receives into. Includes a conditional module (HITL Single Database) representing the optional database with human-in-the-loop sign-off that Liz might build. Everything past the PI sign-off is explicitly out of scope and shown as a boundary.</desc>
+
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="redarrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<!-- Title -->
+<rect x="40" y="30" width="960" height="60" rx="12" fill="rgb(68,68,65)" stroke="rgb(180,178,169)" stroke-width="0.5"/>
+<text x="520" y="56" text-anchor="middle" fill="rgb(211,209,199)" font-family="'Anthropic Sans',sans-serif" font-size="15" font-weight="500">UF SDE Curation Pipeline · Liz Osborn's scope</text>
+<text x="520" y="78" text-anchor="middle" fill="rgb(180,178,169)" font-family="'Anthropic Sans',sans-serif" font-size="12">From undergrad curation through the signed cross-org handoff to the PI · downstream of sign-off is the PI's decision</text>
+
+<!-- ============== PIPELINE COLUMN (x=40-780, width=740) ============== -->
+
+<!-- M1 -->
+<rect x="40" y="110" width="740" height="92" rx="10" fill="rgb(60,52,137)" stroke="rgb(175,169,236)" stroke-width="0.5"/>
+<text x="60" y="134" fill="rgb(206,203,246)" font-family="'Anthropic Sans',sans-serif" font-size="14" font-weight="600">M1 · MODULE · Undergrad Curation Workspace</text>
+<text x="60" y="154" fill="rgb(175,169,236)" font-family="'Anthropic Sans',sans-serif" font-size="11">Two undergrads: curator creates the curation notebook then reviewer claims via /checkout and approves via /approve</text>
+<text x="60" y="172" fill="rgb(175,169,236)" font-family="'Anthropic Sans',sans-serif" font-size="11">internal handoffs: curation push to queue · /checkout (assigns reviewer) · /approve (triggers Bridge)</text>
+<text x="60" y="190" fill="rgb(175,169,236)" font-family="'Anthropic Sans',sans-serif" font-size="11">internal observation: git commits · issue comments · label transitions · Actions logs · metadata.yml</text>
+
+<line x1="410" y1="202" x2="410" y2="222" marker-end="url(#arrow)" stroke="rgb(156,154,146)" stroke-width="1.5"/>
+<text x="60" y="220" fill="rgb(160,160,160)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">Note: /approve = "sent to PI" · NOT "completed" · true completion only after PI sign-off in M3</text>
+
+<!-- H1 -->
+<rect x="40" y="226" width="740" height="88" rx="10" fill="rgb(50,50,55)" stroke="rgb(100,180,200)" stroke-width="1"/>
+<text x="60" y="250" fill="rgb(170,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="600">H1 · HANDOFF · Approval triggers Bridge</text>
+<text x="60" y="270" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11"><tspan fill="rgb(220,240,250)" font-weight="600">Fingerprint:</tspan> SHA-256 of notebook + metadata at /approve commit</text>
+<text x="60" y="288" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11"><tspan fill="rgb(220,240,250)" font-weight="600">Chain:</tspan> curator (R1) + reviewer (R2) + GitHub commit SHA + issue URL</text>
+<text x="60" y="306" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11"><tspan fill="rgb(220,240,250)" font-weight="600">Receipt:</tspan> GitHub Actions run ID returned to the queue repo</text>
+
+<line x1="410" y1="314" x2="410" y2="334" marker-end="url(#arrow)" stroke="rgb(156,154,146)" stroke-width="1.5"/>
+
+<!-- M2 -->
+<rect x="40" y="338" width="740" height="76" rx="10" fill="rgb(36,78,102)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="60" y="362" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="14" font-weight="600">M2 · MODULE · Auto-Transfer Bridge</text>
+<text x="60" y="382" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">GitHub Actions runner holding an Ed25519 deploy key · builds the manifest then signs it</text>
+<text x="60" y="400" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">internal observation: Actions run logs (immutable) · Bridge version SHA captured per run</text>
+
+<line x1="410" y1="414" x2="410" y2="434" marker-end="url(#redarrow)" stroke="rgb(220,100,80)" stroke-width="2.5"/>
+
+<!-- H2 (cross-org) -->
+<rect x="40" y="438" width="740" height="140" rx="10" fill="rgb(110,35,30)" stroke="rgb(220,100,80)" stroke-width="2"/>
+<text x="60" y="462" fill="rgb(255,200,190)" font-family="'Anthropic Sans',sans-serif" font-size="14" font-weight="700">H2 · HANDOFF · Bridge to PI's receiving system   (cross-organization)</text>
+<text x="60" y="484" fill="rgb(255,210,200)" font-family="'Anthropic Sans',sans-serif" font-size="11"><tspan fill="rgb(255,225,215)" font-weight="600">Fingerprint:</tspan> SHA-256 of every file (notebook, paper PDF, conda lockfile, metadata)</text>
+<text x="60" y="502" fill="rgb(255,210,200)" font-family="'Anthropic Sans',sans-serif" font-size="11"><tspan fill="rgb(255,225,215)" font-weight="600">Chain:</tspan> H1 lineage + Bridge SHA + sender identity · manifest Ed25519-signed by Bridge</text>
+<text x="60" y="520" fill="rgb(255,210,200)" font-family="'Anthropic Sans',sans-serif" font-size="11"><tspan fill="rgb(255,225,215)" font-weight="600">Receipt:</tspan> arrival_id returned by receiver · receipt Ed25519-signed by receiver key</text>
+<text x="60" y="540" fill="rgb(220,180,170)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-style="italic">Receiver verifies signature + recomputes every fingerprint BEFORE issuing receipt</text>
+<text x="60" y="560" fill="rgb(220,180,170)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-style="italic">For full sender/receiver protocol see: sde-approach-b-architecture.svg</text>
+
+<line x1="410" y1="578" x2="410" y2="598" marker-end="url(#arrow)" stroke="rgb(156,154,146)" stroke-width="1.5"/>
+
+<!-- M3 (conditional) -->
+<rect x="40" y="602" width="740" height="186" rx="10" fill="rgb(83,33,14)" stroke="rgb(240,153,123)" stroke-width="1.5" stroke-dasharray="6,4"/>
+<text x="60" y="626" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="14" font-weight="600">M3 (CONDITIONAL) · MODULE · Human-in-the-Loop Single Database</text>
+<text x="60" y="646" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-style="italic">Only if Liz builds it. A single database receiving signed arrivals, plus a UI for the PI to log in and sign off.</text>
+
+<rect x="60" y="660" width="222" height="76" rx="8" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="171" y="678" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">arrivals</text>
+<text x="70" y="696" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">signed packages land here</text>
+<text x="70" y="710" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">checksums verified on insert</text>
+<text x="70" y="724" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">append-only (RLS-enforced)</text>
+
+<rect x="299" y="660" width="222" height="76" rx="8" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="410" y="678" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">signoffs</text>
+<text x="309" y="696" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">PI's verdict + notes</text>
+<text x="309" y="710" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">written via Review UI</text>
+<text x="309" y="724" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">append-only</text>
+
+<rect x="538" y="660" width="222" height="76" rx="8" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="649" y="678" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">audit_log</text>
+<text x="548" y="696" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">Postgres trigger fires</text>
+<text x="548" y="710" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">one row per INSERT</text>
+<text x="548" y="724" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">public-readable</text>
+
+<text x="60" y="758" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">Plus a simple Review UI</text>
+<text x="200" y="758" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="11">where the PI logs in, opens an arrival, reviews the curation notebook, clicks sign-off.</text>
+<text x="60" y="776" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="11">internal observation: every row publicly readable · audit_log captures every change · checksums re-verifiable on read</text>
+
+<line x1="410" y1="788" x2="410" y2="808" marker-end="url(#arrow)" stroke="rgb(156,154,146)" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+<!-- Scope boundary -->
+<rect x="40" y="812" width="740" height="90" rx="10" fill="rgb(48,48,48)" stroke="rgb(140,140,140)" stroke-width="0.5" stroke-dasharray="6,3"/>
+<text x="410" y="836" text-anchor="middle" fill="rgb(220,220,220)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="600">END OF LIZ OSBORN'S SCOPE</text>
+<text x="410" y="858" text-anchor="middle" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="11">Anything past the PI's sign-off is the PI's decision — not drawn here.</text>
+<text x="410" y="876" text-anchor="middle" fill="rgb(150,150,150)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-style="italic">verification engine · UF institutional archive · Zenodo · public dashboard · all PI's call</text>
+
+<!-- ============== SIDE REFERENCE PANEL (x=800, width=200) ============== -->
+
+<rect x="800" y="110" width="200" height="792" rx="10" fill="rgb(38,38,38)" stroke="rgb(120,120,120)" stroke-width="0.5"/>
+
+<text x="900" y="134" text-anchor="middle" fill="rgb(220,220,220)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="600">QUICK REFERENCE</text>
+<line x1="820" y1="144" x2="980" y2="144" stroke="rgb(120,120,120)" stroke-width="0.5"/>
+
+<!-- Box types -->
+<text x="820" y="166" fill="rgb(200,200,200)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">BOX TYPES</text>
+
+<rect x="820" y="176" width="160" height="32" rx="6" fill="rgb(60,52,137)" stroke="rgb(175,169,236)" stroke-width="0.5"/>
+<text x="900" y="196" text-anchor="middle" fill="rgb(206,203,246)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="600">MODULE</text>
+
+<rect x="820" y="216" width="160" height="32" rx="6" fill="rgb(50,50,55)" stroke="rgb(100,180,200)" stroke-width="0.5"/>
+<text x="900" y="236" text-anchor="middle" fill="rgb(170,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="600">HANDOFF</text>
+
+<rect x="820" y="256" width="160" height="32" rx="6" fill="rgb(110,35,30)" stroke="rgb(220,100,80)" stroke-width="1.5"/>
+<text x="900" y="276" text-anchor="middle" fill="rgb(255,200,190)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="700">CROSS-ORG HANDOFF</text>
+
+<rect x="820" y="296" width="160" height="32" rx="6" fill="rgb(83,33,14)" stroke="rgb(240,153,123)" stroke-width="1.5" stroke-dasharray="3,2"/>
+<text x="900" y="316" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="600">CONDITIONAL MODULE</text>
+
+<rect x="820" y="336" width="160" height="32" rx="6" fill="rgb(48,48,48)" stroke="rgb(140,140,140)" stroke-width="0.5" stroke-dasharray="3,2"/>
+<text x="900" y="356" text-anchor="middle" fill="rgb(200,200,200)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="600">SCOPE BOUNDARY</text>
+
+<!-- Verification formula -->
+<text x="820" y="392" fill="rgb(200,200,200)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">VERIFICATION FORMULA</text>
+<text x="820" y="408" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="9">three primitives at every handoff:</text>
+
+<rect x="820" y="416" width="160" height="28" rx="4" fill="rgb(45,55,75)" stroke="rgb(120,140,180)" stroke-width="0.5"/>
+<text x="828" y="428" fill="rgb(180,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="600">Fingerprint</text>
+<text x="828" y="440" fill="rgb(160,180,200)" font-family="'Anthropic Sans',sans-serif" font-size="9">SHA-256 of the data</text>
+
+<rect x="820" y="448" width="160" height="28" rx="4" fill="rgb(45,55,75)" stroke="rgb(120,140,180)" stroke-width="0.5"/>
+<text x="828" y="460" fill="rgb(180,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="600">Chain</text>
+<text x="828" y="472" fill="rgb(160,180,200)" font-family="'Anthropic Sans',sans-serif" font-size="9">who handled it · lineage</text>
+
+<rect x="820" y="480" width="160" height="28" rx="4" fill="rgb(45,55,75)" stroke="rgb(120,140,180)" stroke-width="0.5"/>
+<text x="828" y="492" fill="rgb(180,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="600">Receipt</text>
+<text x="828" y="504" fill="rgb(160,180,200)" font-family="'Anthropic Sans',sans-serif" font-size="9">signed confirmation back</text>
+
+<!-- Storage layers -->
+<text x="820" y="534" fill="rgb(200,200,200)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">STORAGE LAYERS</text>
+<text x="820" y="548" fill="rgb(160,160,160)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">only ONE relational DB (if M3 is built)</text>
+
+<rect x="820" y="556" width="160" height="76" rx="6" fill="rgb(35,35,40)" stroke="rgb(150,150,170)" stroke-width="0.5"/>
+<text x="828" y="572" fill="rgb(206,203,246)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-weight="600">1. GitHub Workspace (M1)</text>
+<text x="828" y="584" fill="rgb(170,170,180)" font-family="'Anthropic Sans',sans-serif" font-size="9">files in a git repo</text>
+<text x="828" y="600" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-weight="600">2. HITL Single DB (M3)</text>
+<text x="828" y="612" fill="rgb(170,170,180)" font-family="'Anthropic Sans',sans-serif" font-size="9">conditional · arrivals,</text>
+<text x="828" y="624" fill="rgb(170,170,180)" font-family="'Anthropic Sans',sans-serif" font-size="9">signoffs, audit_log</text>
+
+<!-- Terminology -->
+<text x="820" y="652" fill="rgb(200,200,200)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">TERMINOLOGY NOTE</text>
+<text x="820" y="670" fill="rgb(220,180,170)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-weight="600">"Complete" is misleading.</text>
+<text x="820" y="682" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="9">/approve does not mark</text>
+<text x="820" y="694" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="9">a submission complete.</text>
+<text x="820" y="708" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="9">Completion = PI sign-off</text>
+<text x="820" y="720" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="9">in M3.</text>
+<text x="820" y="736" fill="rgb(180,180,180)" font-family="'Anthropic Sans',sans-serif" font-size="9">Proposed rename:</text>
+<text x="820" y="748" fill="rgb(180,180,180)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">"complete" → "awaiting-pi"</text>
+
+<!-- Companion diagrams -->
+<text x="820" y="776" fill="rgb(200,200,200)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">COMPANION DIAGRAM</text>
+<text x="820" y="794" fill="rgb(160,160,160)" font-family="'Anthropic Sans',sans-serif" font-size="9">For the H2 cross-org</text>
+<text x="820" y="806" fill="rgb(160,160,160)" font-family="'Anthropic Sans',sans-serif" font-size="9">handoff protocol detail:</text>
+<text x="820" y="822" fill="rgb(180,180,180)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">sde-approach-b-</text>
+<text x="820" y="834" fill="rgb(180,180,180)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">architecture.svg</text>
+
+<text x="820" y="858" fill="rgb(150,150,150)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">Other diagrams in this</text>
+<text x="820" y="870" fill="rgb(150,150,150)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">folder (sde-database-</text>
+<text x="820" y="882" fill="rgb(150,150,150)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">schema.svg, sde-</text>
+<text x="820" y="894" fill="rgb(150,150,150)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">substrate-as-code.svg)</text>
+
+</svg>

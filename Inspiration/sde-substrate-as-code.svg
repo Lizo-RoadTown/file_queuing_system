@@ -1,0 +1,136 @@
+<svg width="100%" viewBox="0 0 820 990" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>The Substrate · version-controlled foundation of the curation pipeline</title>
+<desc>The substrate is the version-controlled system layer that defines the rules, schemas, and code of the curation pipeline. It lives in a single repo with five subdirectories, each watched by a corresponding HCP Terraform workspace. Every change goes through a pull request with mandatory review. Each substrate version is recorded in the substrate_versions database table, and each weekly Zenodo deposit bundles a snapshot of the substrate alongside the data.</desc>
+
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<!-- Title -->
+<rect x="40" y="30" width="740" height="60" rx="12" fill="rgb(68,68,65)" stroke="rgb(180,178,169)" stroke-width="0.5"/>
+<text x="410" y="56" text-anchor="middle" fill="rgb(211,209,199)" font-family="'Anthropic Sans',sans-serif" font-size="15" font-weight="500">The Substrate · version-controlled foundation of the curation pipeline</text>
+<text x="410" y="78" text-anchor="middle" fill="rgb(180,178,169)" font-family="'Anthropic Sans',sans-serif" font-size="12">Every change to the system itself = a pull request · every version = a row · every weekly DOI dump bundles the substrate</text>
+
+<!-- Substrate repo -->
+<rect x="40" y="110" width="740" height="220" rx="10" fill="rgb(36,78,102)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="60" y="134" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="14" font-weight="600">THE SUBSTRATE REPO · uf-sde-infrastructure</text>
+<text x="60" y="152" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">One git repo · five subdirectories · one per operational concern</text>
+
+<rect x="60" y="172" width="138" height="140" rx="6" fill="rgb(20,50,72)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="129" y="194" text-anchor="middle" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">github/</text>
+<text x="69" y="216" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">queue repo settings</text>
+<text x="69" y="232" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">branch protections</text>
+<text x="69" y="248" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">CODEOWNERS</text>
+<text x="69" y="264" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">webhook to UF DB</text>
+<text x="69" y="280" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">workflow YAMLs</text>
+<text x="69" y="296" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Action secrets</text>
+
+<rect x="208" y="172" width="138" height="140" rx="6" fill="rgb(20,50,72)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="277" y="194" text-anchor="middle" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">supabase/</text>
+<text x="217" y="216" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">all 6 tables</text>
+<text x="217" y="232" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">RLS policies</text>
+<text x="217" y="248" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">audit triggers</text>
+<text x="217" y="264" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">database roles</text>
+<text x="217" y="280" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">edge functions</text>
+<text x="217" y="296" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">schema migrations</text>
+
+<rect x="356" y="172" width="138" height="140" rx="6" fill="rgb(20,50,72)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="425" y="194" text-anchor="middle" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">agents/</text>
+<text x="365" y="216" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Bridge code + deploy</text>
+<text x="365" y="232" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">PI Engine container</text>
+<text x="365" y="248" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Notification logic</text>
+<text x="365" y="264" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Archive job (weekly)</text>
+<text x="365" y="280" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Dockerfiles</text>
+
+<rect x="504" y="172" width="138" height="140" rx="6" fill="rgb(20,50,72)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="573" y="194" text-anchor="middle" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">public/</text>
+<text x="513" y="216" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Dashboard deploy</text>
+<text x="513" y="232" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">read-only API key</text>
+<text x="513" y="248" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">custom domain</text>
+<text x="513" y="264" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">CDN config</text>
+
+<rect x="652" y="172" width="138" height="140" rx="6" fill="rgb(20,50,72)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="721" y="194" text-anchor="middle" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">secrets/</text>
+<text x="661" y="216" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">UF DB service keys</text>
+<text x="661" y="232" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Zenodo API token</text>
+<text x="661" y="248" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Ed25519 keypairs</text>
+<text x="661" y="264" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">webhook secrets</text>
+<text x="661" y="280" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">(stricter ACL)</text>
+
+<!-- Arrows down to workspaces -->
+<line x1="129" y1="312" x2="129" y2="358" marker-end="url(#arrow)" stroke="rgb(124,188,220)" stroke-width="1.5"/>
+<line x1="277" y1="312" x2="277" y2="358" marker-end="url(#arrow)" stroke="rgb(124,188,220)" stroke-width="1.5"/>
+<line x1="425" y1="312" x2="425" y2="358" marker-end="url(#arrow)" stroke="rgb(124,188,220)" stroke-width="1.5"/>
+<line x1="573" y1="312" x2="573" y2="358" marker-end="url(#arrow)" stroke="rgb(124,188,220)" stroke-width="1.5"/>
+<line x1="721" y1="312" x2="721" y2="358" marker-end="url(#arrow)" stroke="rgb(124,188,220)" stroke-width="1.5"/>
+
+<text x="410" y="345" text-anchor="middle" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-style="italic">each subdirectory watched by its own HCP Terraform workspace</text>
+
+<!-- Five workspaces -->
+<rect x="60" y="362" width="138" height="56" rx="8" fill="rgb(60,90,120)" stroke="rgb(150,200,230)" stroke-width="0.5"/>
+<text x="129" y="382" text-anchor="middle" fill="rgb(200,230,250)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">workspace: github</text>
+<text x="129" y="402" text-anchor="middle" fill="rgb(150,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10">VCS-driven</text>
+
+<rect x="208" y="362" width="138" height="56" rx="8" fill="rgb(60,90,120)" stroke="rgb(150,200,230)" stroke-width="0.5"/>
+<text x="277" y="382" text-anchor="middle" fill="rgb(200,230,250)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">workspace: supabase</text>
+<text x="277" y="402" text-anchor="middle" fill="rgb(150,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10">VCS-driven</text>
+
+<rect x="356" y="362" width="138" height="56" rx="8" fill="rgb(60,90,120)" stroke="rgb(150,200,230)" stroke-width="0.5"/>
+<text x="425" y="382" text-anchor="middle" fill="rgb(200,230,250)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">workspace: agents</text>
+<text x="425" y="402" text-anchor="middle" fill="rgb(150,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10">VCS-driven</text>
+
+<rect x="504" y="362" width="138" height="56" rx="8" fill="rgb(60,90,120)" stroke="rgb(150,200,230)" stroke-width="0.5"/>
+<text x="573" y="382" text-anchor="middle" fill="rgb(200,230,250)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">workspace: public</text>
+<text x="573" y="402" text-anchor="middle" fill="rgb(150,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10">VCS-driven</text>
+
+<rect x="652" y="362" width="138" height="56" rx="8" fill="rgb(60,90,120)" stroke="rgb(150,200,230)" stroke-width="0.5"/>
+<text x="721" y="382" text-anchor="middle" fill="rgb(200,230,250)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">workspace: secrets</text>
+<text x="721" y="402" text-anchor="middle" fill="rgb(150,200,230)" font-family="'Anthropic Sans',sans-serif" font-size="10">VCS + stricter ACL</text>
+
+<!-- Substrate Change Process -->
+<rect x="40" y="450" width="740" height="194" rx="10" fill="rgb(50,50,55)" stroke="rgb(100,180,200)" stroke-width="1"/>
+<text x="60" y="474" fill="rgb(170,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="14" font-weight="600">SUBSTRATE CHANGE PROCESS · how the system itself gets modified</text>
+<text x="60" y="494" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-style="italic">No one — including PIs, agents, or admins — can change the system without going through this flow.</text>
+
+<text x="60" y="520" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11">1. Anyone opens a PR proposing a change to one of the five subdirectories</text>
+<text x="60" y="538" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11">2. CI runs `terraform plan` and posts the planned diff as a PR comment</text>
+<text x="60" y="556" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11">3. Required reviewers (CODEOWNERS) inspect and approve</text>
+<text x="60" y="574" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11">4. Merge → HCP Terraform auto-applies the change to the corresponding workspace</text>
+<text x="60" y="592" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11">5. Post-apply hook inserts a new row into substrate_versions</text>
+<text x="60" y="610" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11">6. Audit log fires automatically (Postgres trigger on substrate_versions)</text>
+<text x="60" y="628" fill="rgb(180,200,210)" font-family="'Anthropic Sans',sans-serif" font-size="11">7. Next weekly Zenodo dump bundles this substrate version with the data of the period</text>
+
+<line x1="410" y1="644" x2="410" y2="664" marker-end="url(#arrow)" stroke="rgb(156,154,146)" stroke-width="1.5"/>
+
+<!-- Database connections -->
+<rect x="40" y="668" width="360" height="180" rx="10" fill="rgb(36,78,102)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="60" y="692" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="600">substrate_versions · the system's own VCS in the DB</text>
+<text x="60" y="712" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">One append-only row per substrate change · forever</text>
+<text x="60" y="730" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">Captures:</text>
+<text x="60" y="748" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">  who proposed (github + orcid)</text>
+<text x="60" y="764" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">  who approved (array of reviewers)</text>
+<text x="60" y="780" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">  pull_request_url</text>
+<text x="60" y="796" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">  terraform_state_sha256</text>
+<text x="60" y="812" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">  workflow_yamls_sha256</text>
+<text x="60" y="828" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">  schema_migration_sha256 · description</text>
+
+<rect x="420" y="668" width="360" height="180" rx="10" fill="rgb(99,56,6)" stroke="rgb(239,159,39)" stroke-width="0.5"/>
+<text x="440" y="692" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="600">archive_receipts · weekly Zenodo dump</text>
+<text x="440" y="712" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="11">Each weekly DOI dump bundles the current</text>
+<text x="440" y="728" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="11">substrate snapshot alongside the data:</text>
+<text x="440" y="748" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">  substrate_version_id (FK)</text>
+<text x="440" y="766" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">  substrate_snapshot_sha256</text>
+<text x="440" y="788" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="11">So future researchers can:</text>
+<text x="440" y="804" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="11">  · re-derive the Terraform state</text>
+<text x="440" y="820" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="11">  · re-create the schema</text>
+<text x="440" y="836" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="11">  · audit the rules of the system</text>
+
+<!-- Closing note -->
+<rect x="40" y="874" width="740" height="90" rx="10" fill="rgb(45,45,45)" stroke="rgb(120,120,120)" stroke-width="0.5"/>
+<text x="60" y="900" fill="rgb(220,220,220)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="500">Recursive transparency</text>
+<text x="60" y="922" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="11">Not just the data is public — the rules that governed the data are public too, archived in the same DOI as the data.</text>
+<text x="60" y="942" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-style="italic">A future researcher reading any Zenodo dump can verify what was reproduced AND what rules the reproduction operated under.</text>
+
+</svg>

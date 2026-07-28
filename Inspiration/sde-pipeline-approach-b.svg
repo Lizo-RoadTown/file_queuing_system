@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100" viewBox="0 0 1800 1100">
+<defs>
+  <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+    <path d="M2,2 L12,7 L2,12 Z" fill="#555"/>
+  </marker>
+  <marker id="redarrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+    <path d="M2,2 L12,7 L2,12 Z" fill="#b85543"/>
+  </marker>
+  <marker id="grayarrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+    <path d="M2,2 L12,7 L2,12 Z" fill="#888"/>
+  </marker>
+  <style>
+    .title { font-family: Arial, sans-serif; font-size: 40px; font-weight: 800; fill: #2f322f; }
+    .sub { font-family: Arial, sans-serif; font-size: 20px; fill: #5f625f; }
+    .lane { font-family: Arial, sans-serif; font-size: 16px; font-weight: 700; fill: #888; letter-spacing: 2px; }
+    .smallcaps { font-family: Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #666; letter-spacing: 1.5px; }
+    .caption { font-family: Arial, sans-serif; font-size: 16px; fill: #585858; }
+    .footnote { font-family: Arial, sans-serif; font-size: 14px; font-style: italic; fill: #707070; }
+  </style>
+</defs>
+
+<rect width="1800" height="1100" fill="#fbfaf7"/>
+
+<!-- Title -->
+<text x="80" y="64" class="title">Pipeline B  ·  Signed Cross-Org Chain of Custody</text>
+<text x="80" y="96" class="sub">A signed manifest crosses the org boundary. The receiver signs back. The chain stays mathematically verifiable years later.</text>
+
+<!-- Lane label on left edge (rotated) -->
+<text x="44" y="600" class="lane" transform="rotate(-90 44 600)">CHAIN IS THE CENTER OF GRAVITY</text>
+
+<!-- ============ TOP STRIP: Curator + Bridge feed into the chain ============ -->
+
+<!-- GitHub curation (small) -->
+<rect x="180" y="150" width="380" height="170" rx="18" fill="#efedff" stroke="#4b3c9d" stroke-width="3"/>
+<text x="370" y="187" text-anchor="middle" font-size="22" font-weight="800" fill="#4b3c9d" font-family="Arial">GitHub curation</text>
+<rect x="210" y="210" width="120" height="30" rx="15" fill="#4b3c9d"/>
+<text x="270" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">notebook</text>
+<rect x="340" y="210" width="120" height="30" rx="15" fill="#4b3c9d"/>
+<text x="400" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">metadata.yml</text>
+<rect x="470" y="210" width="80" height="30" rx="15" fill="#4b3c9d"/>
+<text x="510" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">logs</text>
+<rect x="210" y="248" width="90" height="30" rx="15" fill="#7568c8"/>
+<text x="255" y="268" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">commits</text>
+<rect x="310" y="248" width="110" height="30" rx="15" fill="#7568c8"/>
+<text x="365" y="268" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">comments</text>
+<rect x="430" y="248" width="80" height="30" rx="15" fill="#7568c8"/>
+<text x="470" y="268" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">labels</text>
+<text x="370" y="305" text-anchor="middle" class="footnote">controller: curators · verifier: anyone via git</text>
+
+<!-- Arrow GitHub -> Bridge -->
+<line x1="570" y1="235" x2="660" y2="235" stroke="#555" stroke-width="3" marker-end="url(#arrow)"/>
+
+<!-- Bridge signs manifest (small) -->
+<rect x="670" y="150" width="380" height="170" rx="18" fill="#e8f4f8" stroke="#235b73" stroke-width="3"/>
+<text x="860" y="187" text-anchor="middle" font-size="22" font-weight="800" fill="#235b73" font-family="Arial">Bridge signs manifest</text>
+<rect x="700" y="210" width="160" height="30" rx="15" fill="#235b73"/>
+<text x="780" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">per-file SHA-256</text>
+<rect x="870" y="210" width="140" height="30" rx="15" fill="#235b73"/>
+<text x="940" y="230" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">sender identity</text>
+<rect x="700" y="248" width="320" height="38" rx="19" fill="#b85543"/>
+<text x="860" y="272" text-anchor="middle" font-size="14" font-weight="800" fill="white" font-family="Arial">Bridge Ed25519 signature</text>
+<text x="860" y="305" text-anchor="middle" class="footnote">controller: Bridge code · verifier: anyone with public key</text>
+
+<!-- Arrow Bridge -> chain (downward, big) -->
+<line x1="860" y1="332" x2="860" y2="408" stroke="#b85543" stroke-width="4" marker-end="url(#redarrow)"/>
+<text x="876" y="368" font-size="14" font-weight="700" fill="#9b3f31" font-family="Arial">crosses org boundary</text>
+
+<!-- ============ HERO: HORIZONTAL CHAIN ============ -->
+
+<rect x="80" y="412" width="1640" height="280" rx="30" fill="#fff3ef" stroke="#b85543" stroke-width="4"/>
+<text x="900" y="450" text-anchor="middle" font-size="28" font-weight="800" fill="#9b3f31" font-family="Arial">THE SIGNED HANDOFF CHAIN</text>
+<text x="900" y="473" text-anchor="middle" class="caption">durable, independently verifiable, math (not trust) does the verifying</text>
+
+<!-- Chain node 1: signed manifest -->
+<circle cx="270" cy="565" r="68" fill="#ffffff" stroke="#b85543" stroke-width="4"/>
+<text x="270" y="560" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">signed</text>
+<text x="270" y="582" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">manifest</text>
+<text x="270" y="657" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">per-file SHA-256</text>
+<text x="270" y="673" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">+ Bridge signature</text>
+
+<!-- Chain node 2: receiver verifies -->
+<circle cx="680" cy="565" r="68" fill="#ffffff" stroke="#b85543" stroke-width="4"/>
+<text x="680" y="551" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">receiver</text>
+<text x="680" y="573" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">verifies</text>
+<text x="680" y="595" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">hashes</text>
+<text x="680" y="657" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">recompute SHA-256</text>
+<text x="680" y="673" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">match-check</text>
+
+<!-- Chain node 3: receiver signed receipt -->
+<circle cx="1090" cy="565" r="68" fill="#ffffff" stroke="#b85543" stroke-width="4"/>
+<text x="1090" y="551" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">receiver</text>
+<text x="1090" y="573" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">signed</text>
+<text x="1090" y="595" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">receipt</text>
+<text x="1090" y="657" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">arrival_id + verified</text>
+<text x="1090" y="673" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">+ Receiver signature</text>
+
+<!-- Chain node 4: third-party verifiable -->
+<circle cx="1500" cy="565" r="68" fill="#ffffff" stroke="#b85543" stroke-width="4"/>
+<text x="1500" y="551" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">third-party</text>
+<text x="1500" y="573" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">verifiable</text>
+<text x="1500" y="595" text-anchor="middle" font-size="16" font-weight="800" fill="#9b3f31" font-family="Arial">later</text>
+<text x="1500" y="657" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">public keys published</text>
+<text x="1500" y="673" text-anchor="middle" font-size="13" fill="#9b3f31" font-family="Arial">re-verify decades on</text>
+
+<!-- Chain edges -->
+<line x1="338" y1="565" x2="612" y2="565" stroke="#b85543" stroke-width="6" marker-end="url(#redarrow)"/>
+<line x1="748" y1="565" x2="1022" y2="565" stroke="#b85543" stroke-width="6" marker-end="url(#redarrow)"/>
+<line x1="1158" y1="565" x2="1432" y2="565" stroke="#b85543" stroke-width="6" marker-end="url(#redarrow)"/>
+
+<!-- Trust boundary indicator passing between nodes 1 and 2 -->
+<line x1="475" y1="412" x2="475" y2="692" stroke="#b85543" stroke-width="3" stroke-dasharray="14,10"/>
+<text x="395" y="430" class="smallcaps" fill="#9b3f31">ORG BOUNDARY</text>
+
+<!-- ============ BOTTOM ZONE: PI DB + Independent verifier ============ -->
+
+<!-- Independent verifier (left) -->
+<rect x="80" y="730" width="380" height="200" rx="20" fill="#ffffff" stroke="#666" stroke-width="2"/>
+<text x="270" y="768" text-anchor="middle" font-size="20" font-weight="800" fill="#333" font-family="Arial">Independent verifier</text>
+<text x="270" y="790" text-anchor="middle" class="caption">anyone holding the public keys</text>
+<rect x="115" y="810" width="310" height="34" rx="17" fill="#555"/>
+<text x="270" y="833" text-anchor="middle" font-size="14" font-weight="700" fill="white" font-family="Arial">Bridge public key (published)</text>
+<rect x="115" y="852" width="310" height="34" rx="17" fill="#555"/>
+<text x="270" y="875" text-anchor="middle" font-size="14" font-weight="700" fill="white" font-family="Arial">Receiver public key (published)</text>
+<text x="270" y="912" text-anchor="middle" class="footnote">can re-verify the whole chain later</text>
+
+<!-- Arrow from verifier to chain (dashed, exploratory) -->
+<line x1="280" y1="730" x2="270" y2="668" stroke="#888" stroke-width="2.5" stroke-dasharray="7,6" marker-end="url(#grayarrow)"/>
+
+<!-- Optional exposure (middle, dashed) -->
+<rect x="490" y="730" width="380" height="200" rx="20" fill="#e8f7ef" stroke="#2f7354" stroke-width="2.5" stroke-dasharray="10,8"/>
+<text x="680" y="768" text-anchor="middle" font-size="20" font-weight="800" fill="#2f7354" font-family="Arial">Optional exposure</text>
+<text x="680" y="790" text-anchor="middle" class="caption">downstream of the chain · PI's call</text>
+<rect x="520" y="810" width="105" height="32" rx="16" fill="#2f7354"/>
+<text x="572" y="832" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">archive</text>
+<rect x="635" y="810" width="105" height="32" rx="16" fill="#2f7354"/>
+<text x="687" y="832" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">API</text>
+<rect x="750" y="810" width="105" height="32" rx="16" fill="#2f7354"/>
+<text x="802" y="832" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Arial">feed</text>
+<text x="680" y="876" text-anchor="middle" class="footnote">may exist · not required for handoff</text>
+<text x="680" y="898" text-anchor="middle" class="footnote">verification</text>
+
+<!-- PI receiving system (right, dominant in the bottom row) -->
+<rect x="900" y="730" width="820" height="200" rx="20" fill="#fcf0e8" stroke="#7e3a20" stroke-width="3"/>
+<text x="1310" y="770" text-anchor="middle" font-size="22" font-weight="800" fill="#7e3a20" font-family="Arial">PI receiving system  (institution-controlled)</text>
+<text x="1310" y="794" text-anchor="middle" class="caption">PI stores the verified package and runs whatever downstream they choose</text>
+<rect x="940" y="816" width="160" height="34" rx="17" fill="#7e3a20"/>
+<text x="1020" y="838" text-anchor="middle" font-size="14" font-weight="700" fill="white" font-family="Arial">local intake</text>
+<rect x="1115" y="816" width="160" height="34" rx="17" fill="#7e3a20"/>
+<text x="1195" y="838" text-anchor="middle" font-size="14" font-weight="700" fill="white" font-family="Arial">local audit log</text>
+<rect x="1290" y="816" width="160" height="34" rx="17" fill="#7e3a20"/>
+<text x="1370" y="838" text-anchor="middle" font-size="14" font-weight="700" fill="white" font-family="Arial">verdicts</text>
+<rect x="1465" y="816" width="160" height="34" rx="17" fill="#7e3a20"/>
+<text x="1545" y="838" text-anchor="middle" font-size="14" font-weight="700" fill="white" font-family="Arial">engine runs</text>
+<text x="1310" y="876" text-anchor="middle" class="footnote">public visibility downstream is variable per PI / institution</text>
+<text x="1310" y="898" text-anchor="middle" class="footnote">but the chain above remains intact regardless</text>
+
+<!-- Arrow chain -> PI system -->
+<line x1="1090" y1="692" x2="1090" y2="728" stroke="#7e3a20" stroke-width="3" marker-end="url(#arrow)"/>
+
+<!-- Reading-logic footer -->
+<text x="80" y="1015" class="footnote">Reading logic: read horizontally across the red chain — signed manifest → receiver verifies → signed receipt → third-party verifiable later. The org boundary cuts</text>
+<text x="80" y="1035" class="footnote">between the first two nodes. The PI database below is institution-controlled and downstream; the chain itself is the durable record and stays valid no matter what the PI exposes.</text>
+
+</svg>

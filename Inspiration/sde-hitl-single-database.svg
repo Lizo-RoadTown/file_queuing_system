@@ -1,0 +1,133 @@
+<svg width="100%" viewBox="0 0 800 700" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>Human-in-the-Loop Single Database (proposal for the H2 boundary)</title>
+<desc>One of two proposed approaches for the H2 cross-organizational handoff. A single database with three internal zones: intake (validator checks the arrival), staging (PI is notified, runs their engine), and stored (multiple tables segmented by the PI's verdict). Data does not fundamentally change as it moves from one zone to the next — only annotation tags are added. From the stored zone, the data flows out to live observability layers chosen by the PI.</desc>
+
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="thickarrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+</defs>
+
+<!-- Title -->
+<rect x="40" y="30" width="720" height="60" rx="12" fill="rgb(68,68,65)" stroke="rgb(180,178,169)" stroke-width="0.5"/>
+<text x="400" y="56" text-anchor="middle" fill="rgb(211,209,199)" font-family="'Anthropic Sans',sans-serif" font-size="15" font-weight="500">Human-in-the-Loop Single Database</text>
+<text x="400" y="78" text-anchor="middle" fill="rgb(180,178,169)" font-family="'Anthropic Sans',sans-serif" font-size="12">One database · three internal zones · lineage by tag-accumulation · the row data never changes</text>
+
+<text x="400" y="116" text-anchor="middle" fill="rgb(211,209,199)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="500">OWNERSHIP / RESPONSIBILITY · One database · control stays under one roof · no cross-org boundary</text>
+
+<!-- Bridge sender -->
+<rect x="40" y="140" width="180" height="320" rx="10" fill="rgb(36,78,102)" stroke="rgb(124,188,220)" stroke-width="0.5"/>
+<text x="60" y="164" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="500">SENDER</text>
+<text x="60" y="182" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">Auto-Transfer Bridge (M2)</text>
+
+<text x="60" y="212" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">No crypto keys</text>
+
+<text x="60" y="240" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">1. Compute SHA-256</text>
+<text x="60" y="256" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">of every file</text>
+
+<text x="60" y="282" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">2. Build packing slip:</text>
+<text x="68" y="298" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">- identity</text>
+<text x="68" y="312" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">- files + hashes</text>
+<text x="68" y="326" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">- timestamp</text>
+<text x="68" y="340" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">- lineage chain</text>
+
+<text x="60" y="366" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="11">3. POST over HTTPS</text>
+
+<text x="60" y="396" fill="rgb(174,220,240)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="500">Then: wait for arrival_id</text>
+<text x="60" y="412" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">confirms row landed +</text>
+<text x="60" y="426" fill="rgb(124,188,220)" font-family="'Anthropic Sans',sans-serif" font-size="10">hashes matched</text>
+
+<!-- Forward arrow -->
+<line x1="220" y1="180" x2="244" y2="180" marker-end="url(#thickarrow)" stroke="rgb(220,100,80)" stroke-width="2.5"/>
+<text x="232" y="172" text-anchor="middle" fill="rgb(255,200,190)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-weight="600">packing slip</text>
+<text x="232" y="194" text-anchor="middle" fill="rgb(255,200,190)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-weight="600">+ files (TLS)</text>
+
+<!-- Backward arrow -->
+<line x1="244" y1="420" x2="220" y2="420" marker-end="url(#thickarrow)" stroke="rgb(93,202,165)" stroke-width="2.5"/>
+<text x="232" y="412" text-anchor="middle" fill="rgb(159,225,203)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-weight="600">arrival_id</text>
+
+<!-- THE ONE DATABASE -->
+<rect x="240" y="140" width="520" height="320" rx="10" fill="rgb(83,33,14)" stroke="rgb(240,153,123)" stroke-width="1.5"/>
+<text x="500" y="164" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="600">THE ONE DATABASE</text>
+<text x="500" y="180" text-anchor="middle" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-style="italic">internal zones · row data never changes · only tags are added between zones</text>
+
+<!-- INTAKE zone -->
+<rect x="260" y="192" width="480" height="56" rx="6" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="270" y="212" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">INTAKE · intake table</text>
+<text x="270" y="228" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">arrival lands here · validator checks that hashes match the sender's packing slip</text>
+<text x="270" y="242" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">if mismatch: REJECT (row stays in intake with failure tag) · if match: INSERT into staging</text>
+
+<line x1="500" y1="248" x2="500" y2="262" marker-end="url(#arrow)" stroke="rgb(240,153,123)" stroke-width="1.5"/>
+<text x="510" y="259" fill="rgb(220,180,170)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">tag added: validator_passed_at</text>
+
+<!-- STAGING zone -->
+<rect x="260" y="266" width="480" height="56" rx="6" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="270" y="286" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">STAGING · staging table</text>
+<text x="270" y="302" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">PI is notified · opens row in Review UI · runs their engine against the data</text>
+<text x="270" y="316" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="10">PI records verdict (approve / reject / whatever rules they set)</text>
+
+<line x1="500" y1="322" x2="500" y2="336" marker-end="url(#arrow)" stroke="rgb(240,153,123)" stroke-width="1.5"/>
+<text x="510" y="333" fill="rgb(220,180,170)" font-family="'Anthropic Sans',sans-serif" font-size="9" font-style="italic">tag added: pi_verdict, pi_notes, signoff_timestamp</text>
+
+<!-- STORED zone (with sub-boxes for different outcome tables) -->
+<rect x="260" y="340" width="480" height="106" rx="6" fill="rgb(113,43,19)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="270" y="360" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">STORED · multiple tables, segmented by PI verdict</text>
+
+<rect x="270" y="370" width="146" height="66" rx="4" fill="rgb(140,60,30)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="343" y="388" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="500">approved</text>
+<text x="278" y="404" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">PI signed off</text>
+<text x="278" y="416" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">as reproducible</text>
+<text x="278" y="430" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">append-only</text>
+
+<rect x="424" y="370" width="146" height="66" rx="4" fill="rgb(140,60,30)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="497" y="388" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="500">rejected</text>
+<text x="432" y="404" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">PI marked it</text>
+<text x="432" y="416" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">failed / unsound</text>
+<text x="432" y="430" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">append-only</text>
+
+<rect x="578" y="370" width="146" height="66" rx="4" fill="rgb(140,60,30)" stroke="rgb(240,153,123)" stroke-width="0.5"/>
+<text x="651" y="388" text-anchor="middle" fill="rgb(245,196,179)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-weight="500">other verdicts</text>
+<text x="586" y="404" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">whatever rules</text>
+<text x="586" y="416" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">the PI sets up</text>
+<text x="586" y="430" fill="rgb(240,153,123)" font-family="'Anthropic Sans',sans-serif" font-size="9">append-only</text>
+
+<!-- Arrow from STORED down to observability section -->
+<line x1="500" y1="460" x2="500" y2="488" marker-end="url(#thickarrow)" stroke="rgb(239,159,39)" stroke-width="2.5"/>
+<text x="510" y="479" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-style="italic">PI's choice of destinations</text>
+
+<!-- Live observability layers -->
+<rect x="40" y="494" width="720" height="138" rx="10" fill="rgb(99,56,6)" stroke="rgb(239,159,39)" stroke-width="0.5"/>
+<text x="60" y="516" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="13" font-weight="600">POSSIBLE LIVE OBSERVABILITY LAYERS</text>
+<text x="60" y="532" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10" font-style="italic">downstream of STORED · the PI picks any combination · all opt-in</text>
+
+<!-- Column 1: Live read surfaces -->
+<text x="60" y="554" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">Live read surfaces</text>
+<text x="60" y="572" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· PostgREST REST API</text>
+<text x="60" y="586" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· GraphQL endpoint</text>
+<text x="60" y="600" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· Public web dashboard</text>
+<text x="60" y="614" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· Direct SQL access (psql)</text>
+
+<!-- Column 2: Permanent dumps -->
+<text x="290" y="554" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">Permanent dumps (DOI)</text>
+<text x="290" y="572" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· Zenodo (CERN-operated)</text>
+<text x="290" y="586" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· Figshare</text>
+<text x="290" y="600" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· OSF (Open Science Fwk.)</text>
+<text x="290" y="614" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· Dryad / UF Institutional</text>
+
+<!-- Column 3: Notification feeds -->
+<text x="520" y="554" fill="rgb(250,199,117)" font-family="'Anthropic Sans',sans-serif" font-size="11" font-weight="600">Notification feeds</text>
+<text x="520" y="572" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· RSS / Atom feed</text>
+<text x="520" y="586" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· X / Bluesky / Mastodon</text>
+<text x="520" y="600" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· Email digest / Slack</text>
+<text x="520" y="614" fill="rgb(239,159,39)" font-family="'Anthropic Sans',sans-serif" font-size="10">· ORCID notification</text>
+
+<!-- Why this design -->
+<rect x="40" y="636" width="720" height="56" rx="10" fill="rgb(45,45,45)" stroke="rgb(120,120,120)" stroke-width="0.5"/>
+<text x="60" y="656" fill="rgb(220,220,220)" font-family="'Anthropic Sans',sans-serif" font-size="12" font-weight="500">Why this design</text>
+<text x="60" y="674" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="11">One database · row data never changes between zones · lineage observable as tag-accumulation.</text>
+<text x="60" y="688" fill="rgb(170,170,170)" font-family="'Anthropic Sans',sans-serif" font-size="11">Trust-anchor is the PI's signed-off row. Append-only + audit_log give tamper-evidence without crypto.</text>
+
+</svg>
